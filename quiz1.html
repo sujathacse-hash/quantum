@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Computing Unit I — Quiz</title>
+<style>
+/* ── Design Tokens ─────────────────────────────────── */
+:root {
+  --navy:    #1c3770;
+  --blue:    #3b5bdb;
+  --indigo:  #4c6ef5;
+  --purple:  #7048e8;
+  --teal:    #0ca678;
+  --coral:   #f76707;
+  --gold:    #e67700;
+  --ink:     #0f172a;
+  --ink2:    #334155;
+  --ink3:    #64748b;
+  --page:    #f0f4ff;
+  --white:   #ffffff;
+  --border:  #d4dcf5;
+  --correct-bg: #ecfdf5;
+  --correct-border: #0ca678;
+  --wrong-bg:   #fff4ee;
+  --wrong-border: #f76707;
+  --r: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Floating particles bg ─────────────────────────── */
+.bg-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.06;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0%   { transform: translateY(100vh) rotate(0deg); }
+  100% { transform: translateY(-120px) rotate(360deg); }
+}
+
+/* ── Top bar ───────────────────────────────────────── */
+.topbar {
+  background: var(--navy);
+  color: white;
+  padding: 0 2rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(28,55,112,0.2);
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.95rem; font-weight: 700; letter-spacing: 0.01em;
+}
+.topbar-brand .atom { font-size: 1.3rem; }
+.topbar-right { font-size: 0.82rem; color: rgba(255,255,255,0.6); }
+
+/* ── Progress bar ──────────────────────────────────── */
+.progress-track {
+  height: 3px; background: rgba(255,255,255,0.15);
+  position: sticky; top: 52px; z-index: 99;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo), var(--purple));
+  width: 0%;
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Page wrapper ──────────────────────────────────── */
+.wrapper {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  position: relative; z-index: 1;
+}
+
+/* ── Hero ──────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 2rem 1rem 2.5rem;
+  margin-bottom: 2rem;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--blue);
+  background: rgba(59,91,219,0.1); border: 1.5px solid rgba(59,91,219,0.25);
+  padding: 5px 14px; border-radius: 999px;
+  margin-bottom: 1.2rem;
+}
+.hero h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.9rem, 4.5vw, 2.8rem);
+  color: var(--navy); line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+.hero h1 em { font-style: normal; color: var(--blue); }
+.hero-sub {
+  color: var(--ink2); font-size: 1rem;
+  max-width: 500px; margin: 0 auto 1.5rem;
+}
+.hero-stats {
+  display: flex; justify-content: center; gap: 2rem;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  background: white; border: 1.5px solid var(--border);
+  border-radius: 999px; padding: 6px 18px;
+  font-size: 0.82rem; font-weight: 600; color: var(--ink2);
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 8px rgba(59,91,219,0.08);
+}
+
+/* ── Question card ─────────────────────────────────── */
+.q-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(28,55,112,0.07);
+  transition: box-shadow 0.2s;
+}
+.q-card.answered { box-shadow: 0 4px 20px rgba(28,55,112,0.12); }
+
+.q-header {
+  padding: 1.4rem 1.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.q-num {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--navy); color: white;
+  font-size: 0.88rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+.q-topic {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.q-text {
+  font-size: 1.02rem; font-weight: 600; color: var(--ink);
+  line-height: 1.5;
+}
+
+/* ── Options ───────────────────────────────────────── */
+.q-options { padding: 1rem 1.6rem; display: flex; flex-direction: column; gap: 10px; }
+
+.opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  background: #f8faff;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+  font-size: 0.93rem; color: var(--ink2);
+  user-select: none;
+  position: relative;
+}
+.opt:hover:not(.locked) {
+  border-color: var(--blue);
+  background: rgba(59,91,219,0.04);
+  transform: translateX(3px);
+}
+.opt.locked { cursor: default; }
+
+.opt-letter {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--border); color: var(--ink3);
+  font-size: 0.78rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.2s, color 0.2s;
+}
+.opt-text { flex: 1; line-height: 1.5; }
+
+/* State: correct */
+.opt.correct {
+  border-color: var(--correct-border);
+  background: var(--correct-bg);
+  color: #065f46;
+}
+.opt.correct .opt-letter { background: var(--teal); color: white; }
+
+/* State: wrong (chosen but incorrect) */
+.opt.wrong {
+  border-color: var(--wrong-border);
+  background: var(--wrong-bg);
+  color: #7c2d12;
+}
+.opt.wrong .opt-letter { background: var(--coral); color: white; }
+
+/* State: dim (not chosen, not correct) */
+.opt.dim { opacity: 0.45; }
+
+/* Tick / cross icons */
+.opt .check-icon {
+  font-size: 1.1rem; flex-shrink: 0; margin-top: 1px;
+  display: none;
+}
+.opt.correct .check-icon,
+.opt.wrong   .check-icon { display: block; }
+
+/* ── Explanation box ────────────────────────────────── */
+.explanation {
+  margin: 0 1.6rem 1.4rem;
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  display: none;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { opacity:0; transform: translateY(-8px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.explanation.show { display: block; }
+.explanation.ex-correct {
+  background: var(--correct-bg);
+  border: 1px solid rgba(12,166,120,0.3);
+  color: #065f46;
+}
+.explanation.ex-wrong {
+  background: var(--wrong-bg);
+  border: 1px solid rgba(247,103,7,0.3);
+  color: #7c2d12;
+}
+.explanation strong { display: block; margin-bottom: 4px; font-size: 0.92rem; }
+.explanation .correct-ans {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(12,166,120,0.12);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #065f46;
+}
+
+/* ── Submit button ─────────────────────────────────── */
+.submit-wrap { text-align: center; margin-top: 2rem; }
+#submit-btn {
+  padding: 0.85rem 3rem;
+  background: var(--blue);
+  color: white; border: none;
+  border-radius: 10px;
+  font-size: 1rem; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(59,91,219,0.35);
+  letter-spacing: 0.02em;
+}
+#submit-btn:hover { background: var(--navy); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(28,55,112,0.3); }
+#submit-btn:disabled { background: var(--ink3); cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ── Score panel ───────────────────────────────────── */
+#score-panel {
+  display: none;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(28,55,112,0.12);
+  margin-top: 2rem;
+  animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn {
+  from { opacity:0; transform: scale(0.88); }
+  to   { opacity:1; transform: scale(1); }
+}
+.score-ring {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-weight: 800;
+  position: relative;
+}
+.score-ring::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 6px solid var(--border);
+}
+.score-ring::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 6px solid transparent;
+  border-top-color: var(--blue);
+  border-right-color: var(--blue);
+  animation: none;
+}
+.score-num { font-size: 2.2rem; color: var(--navy); line-height: 1; }
+.score-den { font-size: 0.85rem; color: var(--ink3); }
+.score-grade {
+  font-size: 1.5rem; font-weight: 800;
+  font-family: Georgia, serif;
+  margin-bottom: 0.5rem;
+}
+.score-msg { color: var(--ink2); font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 420px; margin-left:auto; margin-right:auto; }
+.score-breakdown {
+  display: flex; justify-content: center; gap: 1.5rem;
+  flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.sbd-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px;
+}
+.sbd-val { font-size: 1.5rem; font-weight: 800; }
+.sbd-label { font-size: 0.75rem; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.07em; }
+.sbd-correct .sbd-val { color: var(--teal); }
+.sbd-wrong   .sbd-val { color: var(--coral); }
+.sbd-pct     .sbd-val { color: var(--blue); }
+#retry-btn {
+  padding: 0.7rem 2rem;
+  background: transparent; color: var(--blue);
+  border: 2px solid var(--blue); border-radius: 8px;
+  font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+#retry-btn:hover { background: var(--blue); color: white; }
+
+/* ── Progress dots ─────────────────────────────────── */
+.q-dots {
+  display: flex; justify-content: center; gap: 8px;
+  margin-bottom: 2rem;
+}
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--border); transition: background 0.3s;
+}
+.dot.done-correct { background: var(--teal); }
+.dot.done-wrong   { background: var(--coral); }
+.dot.current      { background: var(--blue); transform: scale(1.3); }
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 600px) {
+  .wrapper { padding: 1.5rem 1rem 3rem; }
+  .q-header { padding: 1.1rem 1.2rem 0.8rem; }
+  .q-options { padding: 0.8rem 1.2rem; }
+  .explanation { margin: 0 1.2rem 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .explanation, .q-card, #score-panel { animation: none; }
+  .opt:hover:not(.locked) { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Background particles -->
+<div class="bg-canvas" id="bgCanvas"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="atom">⚛</span>
+    Quantum Computing · Unit I Quiz
+  </div>
+  <div class="topbar-right">23CS5144 · B.Tech CSE</div>
+</div>
+
+<!-- Reading progress -->
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="wrapper">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">⚛ Unit I · Fundamentals</div>
+    <h1>Test Your <em>Quantum</em> Knowledge</h1>
+    <p class="hero-sub">5 questions covering Qubits, Bloch Sphere, Measurement, Dirac Notation, and Entanglement. Wrong answers come with explanations.</p>
+    <div class="hero-stats">
+      <span class="stat-pill">❓ 5 Questions</span>
+      <span class="stat-pill">🏆 20 Marks Each</span>
+      <span class="stat-pill">📊 Total: 100 Marks</span>
+    </div>
+  </div>
+
+  <!-- Progress dots -->
+  <div class="q-dots" id="qDots">
+    <div class="dot current" id="dot-0"></div>
+    <div class="dot" id="dot-1"></div>
+    <div class="dot" id="dot-2"></div>
+    <div class="dot" id="dot-3"></div>
+    <div class="dot" id="dot-4"></div>
+  </div>
+
+  <!-- ══ Q1 ══════════════════════════════════════════════ -->
+  <div class="q-card" id="card-0">
+    <div class="q-header">
+      <div class="q-num">1</div>
+      <div>
+        <div class="q-topic" style="color:var(--blue)">Qubits &amp; Superposition</div>
+        <div class="q-text">A qubit is in the state |ψ⟩ = (3/5)|0⟩ + (4/5)|1⟩. What is the probability of measuring the qubit in state |1⟩?</div>
+      </div>
+    </div>
+    <div class="q-options" data-q="0" data-correct="C">
+      <div class="opt" data-val="A" onclick="selectOpt(this)">
+        <span class="opt-letter">A</span>
+        <span class="opt-text">3/5 = 0.60 (60%)</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="B" onclick="selectOpt(this)">
+        <span class="opt-letter">B</span>
+        <span class="opt-text">9/25 = 0.36 (36%)</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="C" onclick="selectOpt(this)">
+        <span class="opt-letter">C</span>
+        <span class="opt-text">16/25 = 0.64 (64%)</span>
+        <span class="check-icon">✓</span>
+      </div>
+      <div class="opt" data-val="D" onclick="selectOpt(this)">
+        <span class="opt-letter">D</span>
+        <span class="opt-text">4/5 = 0.80 (80%)</span>
+        <span class="check-icon">✗</span>
+      </div>
+    </div>
+    <div class="explanation" id="exp-0">
+      <strong></strong>
+      <span class="body-text"></span>
+      <div class="correct-ans"></div>
+    </div>
+  </div>
+
+  <!-- ══ Q2 ══════════════════════════════════════════════ -->
+  <div class="q-card" id="card-1">
+    <div class="q-header">
+      <div class="q-num">2</div>
+      <div>
+        <div class="q-topic" style="color:var(--purple)">The Bloch Sphere</div>
+        <div class="q-text">On the Bloch sphere, the state |+⟩ = (|0⟩ + |1⟩)/√2 lies at which location?</div>
+      </div>
+    </div>
+    <div class="q-options" data-q="1" data-correct="B">
+      <div class="opt" data-val="A" onclick="selectOpt(this)">
+        <span class="opt-letter">A</span>
+        <span class="opt-text">The north pole (θ = 0)</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="B" onclick="selectOpt(this)">
+        <span class="opt-letter">B</span>
+        <span class="opt-text">On the equator along the +X axis (θ = π/2, φ = 0)</span>
+        <span class="check-icon">✓</span>
+      </div>
+      <div class="opt" data-val="C" onclick="selectOpt(this)">
+        <span class="opt-letter">C</span>
+        <span class="opt-text">The south pole (θ = π)</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="D" onclick="selectOpt(this)">
+        <span class="opt-letter">D</span>
+        <span class="opt-text">The center of the sphere</span>
+        <span class="check-icon">✗</span>
+      </div>
+    </div>
+    <div class="explanation" id="exp-1">
+      <strong></strong>
+      <span class="body-text"></span>
+      <div class="correct-ans"></div>
+    </div>
+  </div>
+
+  <!-- ══ Q3 ══════════════════════════════════════════════ -->
+  <div class="q-card" id="card-2">
+    <div class="q-header">
+      <div class="q-num">3</div>
+      <div>
+        <div class="q-topic" style="color:var(--teal)">Quantum Measurement</div>
+        <div class="q-text">After you measure a qubit that was in superposition and obtain the result "0", what happens if you immediately measure the same qubit again?</div>
+      </div>
+    </div>
+    <div class="q-options" data-q="2" data-correct="A">
+      <div class="opt" data-val="A" onclick="selectOpt(this)">
+        <span class="opt-letter">A</span>
+        <span class="opt-text">You will always measure "0" again — the state has collapsed to |0⟩</span>
+        <span class="check-icon">✓</span>
+      </div>
+      <div class="opt" data-val="B" onclick="selectOpt(this)">
+        <span class="opt-letter">B</span>
+        <span class="opt-text">You will always measure "1" because the qubit flips after measurement</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="C" onclick="selectOpt(this)">
+        <span class="opt-letter">C</span>
+        <span class="opt-text">The result is random — 50% chance of "0" or "1" each time</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="D" onclick="selectOpt(this)">
+        <span class="opt-letter">D</span>
+        <span class="opt-text">The qubit returns to superposition before the second measurement</span>
+        <span class="check-icon">✗</span>
+      </div>
+    </div>
+    <div class="explanation" id="exp-2">
+      <strong></strong>
+      <span class="body-text"></span>
+      <div class="correct-ans"></div>
+    </div>
+  </div>
+
+  <!-- ══ Q4 ══════════════════════════════════════════════ -->
+  <div class="q-card" id="card-3">
+    <div class="q-header">
+      <div class="q-num">4</div>
+      <div>
+        <div class="q-topic" style="color:var(--coral)">Dirac Notation</div>
+        <div class="q-text">In Dirac notation, which of the following correctly expresses the inner product of two states |φ⟩ and |ψ⟩, and what does it physically represent?</div>
+      </div>
+    </div>
+    <div class="q-options" data-q="3" data-correct="D">
+      <div class="opt" data-val="A" onclick="selectOpt(this)">
+        <span class="opt-letter">A</span>
+        <span class="opt-text">|ψ⟩⟨φ| — the outer product, giving the transition probability</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="B" onclick="selectOpt(this)">
+        <span class="opt-letter">B</span>
+        <span class="opt-text">⟨ψ|φ⟩ — the bra-ket product, representing the energy of state |ψ⟩</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="C" onclick="selectOpt(this)">
+        <span class="opt-letter">C</span>
+        <span class="opt-text">|φ⟩|ψ⟩ — tensor product of two states in a combined Hilbert space</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="D" onclick="selectOpt(this)">
+        <span class="opt-letter">D</span>
+        <span class="opt-text">⟨φ|ψ⟩ — a complex number whose squared modulus |⟨φ|ψ⟩|² gives the probability of measuring |φ⟩ given system is in |ψ⟩</span>
+        <span class="check-icon">✓</span>
+      </div>
+    </div>
+    <div class="explanation" id="exp-3">
+      <strong></strong>
+      <span class="body-text"></span>
+      <div class="correct-ans"></div>
+    </div>
+  </div>
+
+  <!-- ══ Q5 ══════════════════════════════════════════════ -->
+  <div class="q-card" id="card-4">
+    <div class="q-header">
+      <div class="q-num">5</div>
+      <div>
+        <div class="q-topic" style="color:var(--navy)">Quantum Entanglement</div>
+        <div class="q-text">Two qubits are prepared in the Bell state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2. Qubit A is sent to Hyderabad and Qubit B to New York. If qubit A is measured and collapses to |1⟩, what can we say about qubit B?</div>
+      </div>
+    </div>
+    <div class="q-options" data-q="4" data-correct="B">
+      <div class="opt" data-val="A" onclick="selectOpt(this)">
+        <span class="opt-letter">A</span>
+        <span class="opt-text">Qubit B is in |0⟩ — opposite state because of conservation laws</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="B" onclick="selectOpt(this)">
+        <span class="opt-letter">B</span>
+        <span class="opt-text">Qubit B instantly collapses to |1⟩ — the same state, due to entanglement</span>
+        <span class="check-icon">✓</span>
+      </div>
+      <div class="opt" data-val="C" onclick="selectOpt(this)">
+        <span class="opt-letter">C</span>
+        <span class="opt-text">Qubit B remains in equal superposition since no signal was sent</span>
+        <span class="check-icon">✗</span>
+      </div>
+      <div class="opt" data-val="D" onclick="selectOpt(this)">
+        <span class="opt-letter">D</span>
+        <span class="opt-text">Qubit B collapses to a random state unrelated to qubit A</span>
+        <span class="check-icon">✗</span>
+      </div>
+    </div>
+    <div class="explanation" id="exp-4">
+      <strong></strong>
+      <span class="body-text"></span>
+      <div class="correct-ans"></div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-wrap">
+    <button id="submit-btn" onclick="submitQuiz()" disabled>Answer all questions to submit</button>
+  </div>
+
+  <!-- Score panel -->
+  <div id="score-panel">
+    <div class="score-ring">
+      <div class="score-num" id="scoreNum">0</div>
+      <div class="score-den" id="scoreDen">/100</div>
+    </div>
+    <div class="score-grade" id="scoreGrade"></div>
+    <p class="score-msg" id="scoreMsg"></p>
+    <div class="score-breakdown">
+      <div class="sbd-item sbd-correct">
+        <div class="sbd-val" id="sbdCorrect">0</div>
+        <div class="sbd-label">✓ Correct</div>
+      </div>
+      <div class="sbd-item sbd-wrong">
+        <div class="sbd-val" id="sbdWrong">0</div>
+        <div class="sbd-label">✗ Wrong</div>
+      </div>
+      <div class="sbd-item sbd-pct">
+        <div class="sbd-val" id="sbdPct">0%</div>
+        <div class="sbd-label">Score %</div>
+      </div>
+    </div>
+    <button id="retry-btn" onclick="retryQuiz()">↺ Try Again</button>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ── Quiz Data ───────────────────────────────────────────────
+const DATA = [
+  {
+    correct: 'C',
+    explanations: {
+      A: {
+        heading: '✗ Incorrect — that\'s the amplitude, not the probability',
+        body: 'The value 3/5 is the amplitude α for |0⟩, not the probability. In quantum mechanics, probabilities come from squaring the amplitude: P(|0⟩) = |α|² = (3/5)² = 9/25. You cannot use the amplitude directly as a probability.',
+        correctAns: '✓ Correct answer: C — P(|1⟩) = |β|² = (4/5)² = 16/25 = 0.64 (64%)'
+      },
+      B: {
+        heading: '✗ Incorrect — you calculated P(|0⟩), not P(|1⟩)',
+        body: '9/25 is |α|² = (3/5)² which gives the probability of measuring |0⟩. The question asks for the probability of |1⟩. For state |ψ⟩ = α|0⟩ + β|1⟩, use P(|1⟩) = |β|² = (4/5)² = 16/25.',
+        correctAns: '✓ Correct answer: C — P(|1⟩) = |β|² = (4/5)² = 16/25 = 0.64 (64%)'
+      },
+      C: {
+        heading: '✓ Correct! Born Rule applied perfectly.',
+        body: 'The probability of measuring state |1⟩ is P(|1⟩) = |β|² = (4/5)² = 16/25 = 0.64. This is the Born Rule. Also verify: P(|0⟩) + P(|1⟩) = 9/25 + 16/25 = 25/25 = 1 ✓ — normalization holds!',
+        correctAns: ''
+      },
+      D: {
+        heading: '✗ Incorrect — that\'s the amplitude β, not |β|²',
+        body: 'The value 4/5 is the amplitude β in front of |1⟩. To get a probability, you must square the absolute value of the amplitude: P(|1⟩) = |β|² = (4/5)² = 16/25. Never forget to square!',
+        correctAns: '✓ Correct answer: C — P(|1⟩) = |β|² = (4/5)² = 16/25 = 0.64 (64%)'
+      }
+    }
+  },
+  {
+    correct: 'B',
+    explanations: {
+      A: {
+        heading: '✗ Incorrect — the north pole is |0⟩, not |+⟩',
+        body: 'The north pole (θ=0) represents the pure state |0⟩ with 100% probability of measuring 0. The state |+⟩ is an equal superposition of |0⟩ and |1⟩, which has θ = π/2 — placing it on the equator, not the pole.',
+        correctAns: '✓ Correct answer: B — |+⟩ is on the equator along the +X axis (θ=π/2, φ=0)'
+      },
+      B: {
+        heading: '✓ Correct! |+⟩ lives on the equator.',
+        body: 'The Bloch sphere formula is |ψ⟩ = cos(θ/2)|0⟩ + e^(iφ)sin(θ/2)|1⟩. For |+⟩ = (|0⟩ + |1⟩)/√2, we need cos(θ/2) = sin(θ/2) = 1/√2, which gives θ=π/2. With φ=0, this places |+⟩ exactly on the equator along the +X axis.',
+        correctAns: ''
+      },
+      C: {
+        heading: '✗ Incorrect — the south pole is |1⟩, not |+⟩',
+        body: 'The south pole (θ=π) represents the pure state |1⟩: cos(π/2)|0⟩ + sin(π/2)|1⟩ = 0·|0⟩ + 1·|1⟩ = |1⟩. The state |+⟩ has equal probability of 0 and 1, so it must be midway between the poles — on the equator.',
+        correctAns: '✓ Correct answer: B — |+⟩ is on the equator along the +X axis (θ=π/2, φ=0)'
+      },
+      D: {
+        heading: '✗ Incorrect — the center is not a valid qubit state',
+        body: 'Every valid pure qubit state lies on the surface of the Bloch sphere, not inside it. The center would represent a completely mixed state (maximum uncertainty), which is a statistical mixture, not a pure quantum state. Pure states always have unit norm.',
+        correctAns: '✓ Correct answer: B — |+⟩ is on the equator along the +X axis (θ=π/2, φ=0)'
+      }
+    }
+  },
+  {
+    correct: 'A',
+    explanations: {
+      A: {
+        heading: '✓ Correct! Measurement collapse is permanent.',
+        body: 'Quantum measurement is irreversible — it collapses the wavefunction. Once you measure and get |0⟩, the qubit is now in state |0⟩ with certainty. Every subsequent measurement will give "0" with probability 1, until some quantum operation (like a gate) changes the state again.',
+        correctAns: ''
+      },
+      B: {
+        heading: '✗ Incorrect — qubits do not automatically flip after measurement',
+        body: 'There is no physical mechanism that causes a qubit to flip after being measured. Measurement collapse is deterministic once observed — it stays in the collapsed state. A flip would require an explicit quantum gate operation like the Pauli-X (NOT) gate.',
+        correctAns: '✓ Correct answer: A — the qubit collapsed to |0⟩ and will stay |0⟩ upon re-measurement'
+      },
+      C: {
+        heading: '✗ Incorrect — 50/50 randomness only exists BEFORE collapse',
+        body: 'The 50/50 randomness you\'re thinking of applies to states like |+⟩ = (|0⟩+|1⟩)/√2 before any measurement. Once the first measurement happens and returns "0", the superposition is permanently destroyed. The qubit is now definitively |0⟩ — no randomness remains.',
+        correctAns: '✓ Correct answer: A — the qubit collapsed to |0⟩ and will stay |0⟩ upon re-measurement'
+      },
+      D: {
+        heading: '✗ Incorrect — qubits do not spontaneously re-enter superposition',
+        body: 'A qubit does not automatically return to superposition after measurement. Superposition is created by applying specific quantum gates (like Hadamard). Without an explicit gate operation, a measured qubit stays in its collapsed classical state indefinitely.',
+        correctAns: '✓ Correct answer: A — the qubit collapsed to |0⟩ and will stay |0⟩ upon re-measurement'
+      }
+    }
+  },
+  {
+    correct: 'D',
+    explanations: {
+      A: {
+        heading: '✗ Incorrect — |ψ⟩⟨φ| is the outer product, not the inner product',
+        body: 'The expression |ψ⟩⟨φ| (ket times bra) is the outer product — it produces a matrix (operator), not a scalar. For example |0⟩⟨1| is the lowering operator. The inner product is the other way: ⟨φ|ψ⟩ (bra times ket), producing a complex number.',
+        correctAns: '✓ Correct answer: D — ⟨φ|ψ⟩ is the inner product; |⟨φ|ψ⟩|² is the transition probability'
+      },
+      B: {
+        heading: '✗ Incorrect — ⟨ψ|φ⟩ is the inner product but energy is wrong',
+        body: 'You have the notation ⟨ψ|φ⟩ correct (that is indeed an inner product) but the physical meaning is wrong. The inner product gives a probability amplitude, not energy. Energy is given by ⟨ψ|Ĥ|ψ⟩ — an expectation value with the Hamiltonian operator Ĥ.',
+        correctAns: '✓ Correct answer: D — ⟨φ|ψ⟩ gives a probability amplitude; |⟨φ|ψ⟩|² is the measurement probability'
+      },
+      C: {
+        heading: '✗ Incorrect — |φ⟩|ψ⟩ is a tensor product, not an inner product',
+        body: 'Writing |φ⟩|ψ⟩ (or |φ⟩⊗|ψ⟩) is the tensor product, which creates a composite 4-dimensional system (two qubits together). This is completely different from the inner product. The inner product ⟨φ|ψ⟩ contracts two states into a single complex number.',
+        correctAns: '✓ Correct answer: D — ⟨φ|ψ⟩ is the inner product; |⟨φ|ψ⟩|² is the measurement probability'
+      },
+      D: {
+        heading: '✓ Correct! The Born Rule via inner product.',
+        body: 'The inner product ⟨φ|ψ⟩ is a complex number (the probability amplitude). Its squared modulus |⟨φ|ψ⟩|² gives the probability of measuring state |φ⟩ when the system is in state |ψ⟩. This is the Born Rule — the cornerstone of quantum measurement theory. Note: ⟨φ|ψ⟩ and ⟨ψ|φ⟩ are complex conjugates of each other.',
+        correctAns: ''
+      }
+    }
+  },
+  {
+    correct: 'B',
+    explanations: {
+      A: {
+        heading: '✗ Incorrect — the Bell state |Φ⁺⟩ has same-outcome correlations, not opposite',
+        body: 'The Bell state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2 has only two terms: |00⟩ and |11⟩. This means measurements always yield the same result for both qubits. Anti-correlated Bell states (like |Ψ⁻⟩ = (|01⟩ − |10⟩)/√2) would give opposite outcomes. The "conservation laws" intuition from classical physics does not apply here.',
+        correctAns: '✓ Correct answer: B — |Φ⁺⟩ is correlated; A=|1⟩ means B instantly = |1⟩'
+      },
+      B: {
+        heading: '✓ Correct! Entanglement — perfectly correlated.',
+        body: 'The Bell state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2 contains only the terms |00⟩ and |11⟩ — no |01⟩ or |10⟩ cross-terms. So when A is measured as |1⟩, the joint state collapses to |11⟩, meaning B is also |1⟩ with 100% certainty, instantaneously and regardless of distance. This is quantum non-locality.',
+        correctAns: ''
+      },
+      C: {
+        heading: '✗ Incorrect — entangled qubits do not remain independent after measurement',
+        body: 'Before measurement, neither qubit has a definite individual state — they only have a joint state. Once A is measured, the entire entangled system collapses. B cannot "remain in superposition" because it was never independently in superposition — its state was always correlated with A through the joint Bell state.',
+        correctAns: '✓ Correct answer: B — B collapses to |1⟩ the moment A is measured as |1⟩'
+      },
+      D: {
+        heading: '✗ Incorrect — entangled qubits have deterministic correlations, not random independence',
+        body: 'The key feature of entanglement is that the correlations are perfectly predictable (given the measurement outcome of A). The randomness in a Bell state is only in which outcome A gets (50% chance of |0⟩ or |1⟩). Once A\'s outcome is known, B\'s outcome is fully determined — it is not random or unrelated.',
+        correctAns: '✓ Correct answer: B — B is always the same as A for the |Φ⁺⟩ Bell state'
+      }
+    }
+  }
+];
+
+// ── State ──────────────────────────────────────────────────
+const chosen = [null, null, null, null, null];
+let submitted = false;
+
+// ── Particles ──────────────────────────────────────────────
+(function spawnParticles() {
+  const canvas = document.getElementById('bgCanvas');
+  const colors = ['#3b5bdb','#7048e8','#0ca678','#f76707'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 20 + Math.random() * 60;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${12 + Math.random()*20}s;
+      animation-delay:${-Math.random()*20}s;
+    `;
+    canvas.appendChild(p);
+  }
+})();
+
+// ── Progress bar ──────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const d = document.documentElement;
+  const pct = d.scrollTop / (d.scrollHeight - d.clientHeight);
+  document.getElementById('progressFill').style.width = (pct * 100) + '%';
+}, { passive: true });
+
+// ── Select option ─────────────────────────────────────────
+function selectOpt(el) {
+  if (submitted) return;
+  const container = el.closest('.q-options');
+  const qIdx = parseInt(container.dataset.q);
+  if (chosen[qIdx] !== null) return; // already answered
+
+  const val = el.dataset.val;
+  const correct = container.dataset.correct;
+  chosen[qIdx] = val;
+
+  // Lock all options in this question
+  container.querySelectorAll('.opt').forEach(o => {
+    o.classList.add('locked');
+    if (o.dataset.val === correct) {
+      o.classList.add('correct');
+    } else if (o.dataset.val === val && val !== correct) {
+      o.classList.add('wrong');
+    } else {
+      o.classList.add('dim');
+    }
+  });
+
+  // Show explanation
+  const expBox  = document.getElementById('exp-' + qIdx);
+  const expData = DATA[qIdx].explanations[val];
+  expBox.querySelector('strong').textContent    = expData.heading;
+  expBox.querySelector('.body-text').textContent = expData.body;
+  const ans = expBox.querySelector('.correct-ans');
+  ans.textContent = expData.correctAns;
+  ans.style.display = expData.correctAns ? 'block' : 'none';
+
+  expBox.classList.add('show');
+  expBox.classList.add(val === correct ? 'ex-correct' : 'ex-wrong');
+  document.getElementById('card-' + qIdx).classList.add('answered');
+
+  // Update dot
+  const dot = document.getElementById('dot-' + qIdx);
+  dot.classList.remove('current');
+  dot.classList.add(val === correct ? 'done-correct' : 'done-wrong');
+
+  // Activate next dot
+  if (qIdx < 4) {
+    document.getElementById('dot-' + (qIdx+1)).classList.add('current');
+  }
+
+  // Check if all answered
+  if (chosen.every(c => c !== null)) {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = false;
+    btn.textContent = 'Submit & See My Score';
+    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// ── Submit quiz ────────────────────────────────────────────
+function submitQuiz() {
+  submitted = true;
+  document.getElementById('submit-btn').style.display = 'none';
+
+  const correct = chosen.filter((c, i) => c === DATA[i].correct).length;
+  const wrong   = 5 - correct;
+  const marks   = correct * 20;
+  const pct     = marks;
+
+  document.getElementById('scoreNum').textContent   = marks;
+  document.getElementById('sbdCorrect').textContent = correct;
+  document.getElementById('sbdWrong').textContent   = wrong;
+  document.getElementById('sbdPct').textContent     = pct + '%';
+
+  let grade, msg, gradeColor;
+  if (marks === 100) {
+    grade = 'Outstanding — A+'; gradeColor = '#0ca678';
+    msg = '🎉 Perfect score! You have an excellent grasp of all Unit I fundamentals. You\'re ready for quantum gates!';
+  } else if (marks >= 80) {
+    grade = 'Excellent — A'; gradeColor = '#3b5bdb';
+    msg = '👏 Great work! You understand most core concepts. Review the highlighted wrong answers and you\'ll be set.';
+  } else if (marks >= 60) {
+    grade = 'Good — B'; gradeColor = '#7048e8';
+    msg = '👍 Solid understanding. Revisit the topics where you went wrong — the explanations above will help.';
+  } else if (marks >= 40) {
+    grade = 'Needs Work — C'; gradeColor = '#f76707';
+    msg = '📖 You\'re getting there! Re-read the Bloch sphere, measurement, and Dirac notation sections in the study guide.';
+  } else {
+    grade = 'Keep Studying — D'; gradeColor = '#e03131';
+    msg = '📚 Don\'t worry — quantum mechanics takes time. Go through the Unit I study guide again, then retry this quiz.';
+  }
+
+  const gradeEl = document.getElementById('scoreGrade');
+  gradeEl.textContent = grade;
+  gradeEl.style.color = gradeColor;
+  document.getElementById('scoreMsg').textContent = msg;
+
+  const panel = document.getElementById('score-panel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Animate ring fill
+  const ring = panel.querySelector('.score-ring');
+  ring.style.background = `conic-gradient(${gradeColor} ${pct * 3.6}deg, #e2e8f0 0deg)`;
+  ring.style.borderRadius = '50%';
+}
+
+// ── Retry ─────────────────────────────────────────────────
+function retryQuiz() {
+  location.reload();
+}
+</script>
+</body>
+</html>
