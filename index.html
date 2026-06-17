@@ -1,31 +1,879 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Quantum Computing Basics</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Computing — 23CS5144</title>
+<style>
+/* ── Tokens ───────────────────────────────────────────── */
+:root {
+  --navy:    #0d1b3e;
+  --navy2:   #162040;
+  --navy3:   #1e2d55;
+  --blue:    #4361ee;
+  --indigo:  #3a0ca3;
+  --cyan:    #06d6a0;
+  --purple:  #7209b7;
+  --gold:    #ffd166;
+  --coral:   #ef476f;
+  --page:    #f8faff;
+  --white:   #ffffff;
+  --ink:     #0d1b3e;
+  --ink2:    #334155;
+  --ink3:    #64748b;
+  --border:  #dce4f5;
+  --r:       12px;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  font-family: system-ui,-apple-system,'Segoe UI',sans-serif;
+  background: var(--page);
+  color: var(--ink);
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* ── NAV ──────────────────────────────────────────────── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:200;
+  height: 60px;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: 0 2.5rem;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+nav.scrolled {
+  background: rgba(13,27,62,0.97);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+.nav-logo {
+  display:flex; align-items:center; gap:10px;
+  text-decoration:none; color:white;
+  font-weight:800; font-size:1rem; letter-spacing:0.01em;
+}
+.nav-logo svg { width:32px; height:32px; }
+.nav-links { display:flex; gap:4px; list-style:none; }
+.nav-links a {
+  display:block; padding:7px 14px; border-radius:8px;
+  font-size:0.85rem; font-weight:500; color:rgba(255,255,255,0.72);
+  text-decoration:none; transition:background 0.15s,color 0.15s;
+}
+.nav-links a:hover { background:rgba(255,255,255,0.1); color:white; }
+.nav-cta {
+  background: var(--cyan); color: var(--navy) !important;
+  font-weight:700 !important; padding:7px 18px !important;
+  border-radius:8px;
+}
+.nav-cta:hover { background:#04c090 !important; }
+
+/* ── HERO ─────────────────────────────────────────────── */
+.hero {
+  position:relative; min-height:100vh;
+  background: var(--navy);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; padding:6rem 2rem 4rem;
+  overflow:hidden;
+}
+#heroCanvas {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  opacity:0.35;
+}
+.hero-content { position:relative; z-index:2; max-width:780px; }
+
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:0.73rem; font-weight:700; letter-spacing:0.13em;
+  text-transform:uppercase; color:var(--cyan);
+  border:1.5px solid rgba(6,214,160,0.35);
+  background:rgba(6,214,160,0.08);
+  padding:5px 16px; border-radius:999px;
+  margin-bottom:1.6rem;
+}
+.hero-eyebrow span { width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+.hero h1 {
+  font-family: Georgia,'Times New Roman',serif;
+  font-size: clamp(2.4rem,6vw,4rem);
+  color: white; line-height:1.15;
+  margin-bottom:1.2rem;
+  letter-spacing:-0.01em;
+}
+.hero h1 .accent {
+  color: var(--cyan);
+  text-shadow: 0 0 40px rgba(6,214,160,0.4);
+}
+.hero-sub {
+  font-size:clamp(1rem,2.2vw,1.18rem);
+  color:rgba(255,255,255,0.65);
+  max-width:580px; margin:0 auto 2.4rem;
+  line-height:1.7;
+}
+.hero-actions {
+  display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:3.5rem;
+}
+.btn-primary {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:0.9rem 2.2rem;
+  background:var(--cyan); color:var(--navy);
+  font-weight:800; font-size:0.95rem;
+  border-radius:10px; text-decoration:none;
+  transition:transform 0.15s,box-shadow 0.15s,background 0.15s;
+  box-shadow:0 4px 20px rgba(6,214,160,0.4);
+  letter-spacing:0.01em;
+}
+.btn-primary:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(6,214,160,0.45); background:#04c090; }
+.btn-secondary {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:0.9rem 2.2rem;
+  background:rgba(255,255,255,0.06);
+  color:white; font-weight:700; font-size:0.95rem;
+  border-radius:10px; text-decoration:none;
+  border:1.5px solid rgba(255,255,255,0.2);
+  transition:transform 0.15s,background 0.15s;
+}
+.btn-secondary:hover { transform:translateY(-3px); background:rgba(255,255,255,0.12); }
+
+.hero-stats {
+  display:flex; justify-content:center; gap:3rem; flex-wrap:wrap;
+  padding-top:2rem;
+  border-top:1px solid rgba(255,255,255,0.1);
+}
+.hstat { text-align:center; }
+.hstat-num {
+  display:block; font-size:1.9rem; font-weight:800; color:white;
+  font-family:Georgia,serif; letter-spacing:-0.02em;
+}
+.hstat-num .unit { font-size:1rem; font-weight:600; color:var(--cyan); }
+.hstat-label { font-size:0.75rem; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.08em; margin-top:2px; }
+
+.scroll-cue {
+  position:absolute; bottom:2rem; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  color:rgba(255,255,255,0.3); font-size:0.72rem; letter-spacing:0.1em;
+  text-transform:uppercase; z-index:2;
+}
+.scroll-cue svg { animation:bounce 2s ease infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+/* ── SECTION SHARED ───────────────────────────────────── */
+.section { padding:5rem 2rem; }
+.section-inner { max-width:1100px; margin:0 auto; }
+.section-label {
+  font-size:0.72rem; font-weight:700; letter-spacing:0.12em;
+  text-transform:uppercase; margin-bottom:0.6rem;
+}
+.section-title {
+  font-family:Georgia,serif;
+  font-size:clamp(1.7rem,3.5vw,2.4rem);
+  color:var(--ink); line-height:1.2;
+  margin-bottom:0.8rem; letter-spacing:-0.01em;
+}
+.section-sub {
+  font-size:1.05rem; color:var(--ink2);
+  max-width:600px; line-height:1.7;
+}
+
+/* ── WHAT YOU'LL LEARN ────────────────────────────────── */
+.learn-section { background:white; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.learn-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:1.25rem; margin-top:3rem;
+}
+.learn-card {
+  padding:1.6rem 1.75rem;
+  border:1.5px solid var(--border);
+  border-radius:var(--r);
+  background:var(--page);
+  transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s;
+  display:flex; flex-direction:column; gap:0.8rem;
+}
+.learn-card:hover {
+  border-color:var(--blue);
+  box-shadow:0 6px 24px rgba(67,97,238,0.1);
+  transform:translateY(-3px);
+}
+.learn-icon {
+  width:44px; height:44px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem;
+}
+.learn-card h3 { font-size:1rem; font-weight:700; color:var(--ink); }
+.learn-card p  { font-size:0.88rem; color:var(--ink2); line-height:1.65; }
+.learn-tag {
+  display:inline-block; font-size:0.7rem; font-weight:700;
+  padding:2px 9px; border-radius:999px; align-self:flex-start;
+  letter-spacing:0.05em; text-transform:uppercase;
+}
+
+/* ── RESOURCES SECTION ────────────────────────────────── */
+.resources-section { background:var(--page); }
+.resources-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:1.5rem; margin-top:3rem;
+}
+
+/* Study Guide card */
+.resource-card {
+  border-radius:16px; overflow:hidden;
+  border:1.5px solid var(--border);
+  background:white;
+  box-shadow:0 4px 16px rgba(13,27,62,0.07);
+  transition:transform 0.2s,box-shadow 0.2s;
+  display:flex; flex-direction:column;
+}
+.resource-card:hover {
+  transform:translateY(-5px);
+  box-shadow:0 12px 36px rgba(13,27,62,0.14);
+}
+.resource-card-top {
+  padding:2rem 2rem 1.5rem;
+  display:flex; flex-direction:column; flex:1;
+}
+.resource-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:0.7rem; font-weight:700; letter-spacing:0.1em;
+  text-transform:uppercase; padding:4px 12px; border-radius:999px;
+  margin-bottom:1.2rem; align-self:flex-start;
+}
+.resource-card h3 {
+  font-family:Georgia,serif;
+  font-size:1.35rem; color:var(--ink);
+  margin-bottom:0.6rem; line-height:1.25;
+}
+.resource-card p { font-size:0.9rem; color:var(--ink2); line-height:1.7; flex:1; }
+.resource-features {
+  list-style:none; margin-top:1.2rem; display:flex; flex-direction:column; gap:7px;
+}
+.resource-features li {
+  display:flex; align-items:center; gap:8px;
+  font-size:0.85rem; color:var(--ink2);
+}
+.resource-features li::before { content:''; flex-shrink:0; }
+.feat-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+.resource-card-footer {
+  padding:1.25rem 2rem;
+  border-top:1px solid var(--border);
+  background:var(--page);
+}
+.resource-link {
+  display:inline-flex; align-items:center; gap:8px;
+  font-weight:700; font-size:0.9rem; text-decoration:none;
+  border-radius:8px; padding:0.7rem 1.4rem;
+  transition:transform 0.15s,box-shadow 0.15s;
+  width:100%; justify-content:center;
+}
+.resource-link:hover { transform:translateY(-2px); }
+.resource-link svg { transition:transform 0.15s; }
+.resource-link:hover svg { transform:translateX(3px); }
+
+/* ── COURSE INFO STRIP ────────────────────────────────── */
+.info-strip {
+  background:var(--navy);
+  padding:3.5rem 2rem;
+}
+.info-strip-inner {
+  max-width:1100px; margin:0 auto;
+  display:flex; gap:3rem; flex-wrap:wrap;
+  align-items:center; justify-content:space-between;
+}
+.info-strip h2 {
+  font-family:Georgia,serif; font-size:1.6rem;
+  color:white; margin-bottom:0.5rem;
+}
+.info-strip p { color:rgba(255,255,255,0.6); font-size:0.9rem; max-width:480px; }
+.info-pills { display:flex; flex-wrap:wrap; gap:10px; margin-top:1.2rem; }
+.info-pill {
+  display:flex; align-items:center; gap:7px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.8); font-size:0.82rem; font-weight:500;
+  padding:6px 14px; border-radius:999px;
+}
+.info-pill-icon { font-size:0.95rem; }
+
+/* ── UNITS ROADMAP ────────────────────────────────────── */
+.units-section { background:white; border-top:1px solid var(--border); }
+.units-row {
+  display:flex; gap:0; margin-top:3rem;
+  border:1.5px solid var(--border); border-radius:16px; overflow:hidden;
+}
+.unit-cell {
+  flex:1; padding:1.6rem 1.4rem;
+  border-right:1px solid var(--border);
+  position:relative;
+  transition:background 0.2s;
+}
+.unit-cell:last-child { border-right:none; }
+.unit-cell.active { background:rgba(67,97,238,0.04); }
+.unit-cell:hover  { background:#f8faff; }
+.unit-num {
+  font-size:0.68rem; font-weight:800; letter-spacing:0.1em;
+  text-transform:uppercase; color:var(--ink3); margin-bottom:0.5rem;
+}
+.unit-cell h4 {
+  font-family:Georgia,serif; font-size:0.95rem;
+  color:var(--ink); margin-bottom:0.5rem; line-height:1.3;
+}
+.unit-cell ul { list-style:none; display:flex; flex-direction:column; gap:4px; }
+.unit-cell ul li { font-size:0.78rem; color:var(--ink3); }
+.unit-active-badge {
+  position:absolute; top:12px; right:12px;
+  background:var(--blue); color:white;
+  font-size:0.62rem; font-weight:700; letter-spacing:0.06em;
+  padding:2px 8px; border-radius:999px; text-transform:uppercase;
+}
+
+/* ── BOTTOM CTA ───────────────────────────────────────── */
+.cta-section {
+  padding:5rem 2rem;
+  background:linear-gradient(135deg,var(--navy) 0%,#1a1060 100%);
+  text-align:center; position:relative; overflow:hidden;
+}
+.cta-section::before {
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(67,97,238,0.2) 0%,transparent 55%),
+    radial-gradient(circle at 80% 50%, rgba(6,214,160,0.15) 0%,transparent 55%);
+}
+.cta-section > * { position:relative;z-index:1; }
+.cta-section h2 {
+  font-family:Georgia,serif; font-size:clamp(1.8rem,4vw,2.8rem);
+  color:white; margin-bottom:0.8rem;
+}
+.cta-section p { color:rgba(255,255,255,0.6); font-size:1.05rem; max-width:480px; margin:0 auto 2rem; }
+.cta-actions { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+
+/* ── FOOTER ───────────────────────────────────────────── */
+footer {
+  background:var(--navy); border-top:1px solid rgba(255,255,255,0.08);
+  padding:2rem 2.5rem;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:1rem;
+}
+.footer-left { display:flex; align-items:center; gap:10px; }
+.footer-logo { font-weight:800; font-size:0.95rem; color:white; display:flex; align-items:center; gap:8px; }
+.footer-meta { font-size:0.8rem; color:rgba(255,255,255,0.35); margin-top:3px; }
+.footer-right { font-size:0.8rem; color:rgba(255,255,255,0.35); text-align:right; }
+
+/* ── SCROLL REVEAL ────────────────────────────────────── */
+.reveal { opacity:0; transform:translateY(28px); transition:opacity 0.6s, transform 0.6s; }
+.reveal.in { opacity:1; transform:none; }
+.reveal-delay-1 { transition-delay:0.1s; }
+.reveal-delay-2 { transition-delay:0.2s; }
+.reveal-delay-3 { transition-delay:0.3s; }
+.reveal-delay-4 { transition-delay:0.4s; }
+
+/* ── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width:900px) {
+  .units-row { flex-direction:column; }
+  .unit-cell { border-right:none; border-bottom:1px solid var(--border); }
+  .unit-cell:last-child { border-bottom:none; }
+}
+@media (max-width:640px) {
+  nav { padding:0 1.2rem; }
+  .nav-links { display:none; }
+  .hero-stats { gap:1.5rem; }
+  .info-strip-inner { flex-direction:column; }
+  footer { flex-direction:column; text-align:center; }
+  .footer-right { text-align:center; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .reveal { opacity:1; transform:none; transition:none; }
+  html { scroll-behavior:auto; }
+  .scroll-cue svg, .pulse { animation:none; }
+}
+</style>
 </head>
 <body>
-    <h1>Quantum Computing</h1>
 
-    <p>
-        Quantum computing uses qubits instead of classical bits.
+<!-- ── NAV ─────────────────────────────────────────────── -->
+<nav id="mainNav">
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="3.5" fill="#06d6a0"/>
+      <ellipse cx="16" cy="16" rx="14" ry="5.5" stroke="#4361ee" stroke-width="1.5" fill="none"/>
+      <ellipse cx="16" cy="16" rx="14" ry="5.5" stroke="#4361ee" stroke-width="1.5" fill="none" transform="rotate(60 16 16)"/>
+      <ellipse cx="16" cy="16" rx="14" ry="5.5" stroke="#4361ee" stroke-width="1.5" fill="none" transform="rotate(120 16 16)"/>
+    </svg>
+    QC · 23CS5144
+  </a>
+  <ul class="nav-links">
+    <li><a href="#learn">Syllabus</a></li>
+    <li><a href="#resources">Materials</a></li>
+    <li><a href="#units">All Units</a></li>
+    <li><a href="Quantum_Unit1_Quiz.html" class="nav-cta">Take Quiz →</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <canvas id="heroCanvas"></canvas>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span></span>
+      B.Tech CSE · Final Year · Elective
+    </div>
+
+    <h1>Introduction to<br><span class="accent">Quantum Computing</span></h1>
+
+    <p class="hero-sub">
+      From qubits and superposition to Grover's algorithm and quantum machine learning —
+      a complete guide to computation beyond classical limits.
     </p>
 
-    <h2>Key Concepts</h2>
-    <ul>
-        <li>Qubit</li>
-        <li>Superposition</li>
-        <li>Entanglement</li>
-        <li>Quantum Gates</li>
-    </ul>
+    <div class="hero-actions">
+      <a href="Quantum_Unit1_StudyGuide.html" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Open Unit I Study Guide
+      </a>
+      <a href="Quantum_Unit1_Quiz.html" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Try the Quiz
+      </a>
+    </div>
 
-    <h2>Example</h2>
-    <p>
-        A qubit can represent both 0 and 1 at the same time.
-    </p>
-    <a href="Quantum_Unit1_StudyGuide.html">
-  <button>Open Study Guide</button>
-  <a href="quiz1.html">
-  <button>start quiz</button>
-</a>
+    <div class="hero-stats">
+      <div class="hstat">
+        <span class="hstat-num">5<span class="unit"> Units</span></span>
+        <span class="hstat-label">Full Syllabus</span>
+      </div>
+      <div class="hstat">
+        <span class="hstat-num">45<span class="unit"> hrs</span></span>
+        <span class="hstat-label">Lecture Hours</span>
+      </div>
+      <div class="hstat">
+        <span class="hstat-num">3<span class="unit"> cr</span></span>
+        <span class="hstat-label">Credits</span>
+      </div>
+      <div class="hstat">
+        <span class="hstat-num">100<span class="unit"> marks</span></span>
+        <span class="hstat-label">End Exam</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <span>Explore</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- ── WHAT YOU'LL LEARN ────────────────────────────────── -->
+<section class="section learn-section" id="learn">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label" style="color:var(--blue)">Unit I — Fundamentals</div>
+      <h2 class="section-title">What you'll learn first</h2>
+      <p class="section-sub">Unit I builds the mathematical and conceptual foundation every other unit depends on. Nine lectures across six core topics.</p>
+    </div>
+
+    <div class="learn-grid">
+      <div class="learn-card reveal reveal-delay-1">
+        <div class="learn-icon" style="background:#e8f0fe">⚡</div>
+        <div>
+          <h3>Classical vs Quantum Computing</h3>
+          <p>Why classical bits hit a wall on certain problems, and how the quantum model of computation breaks through it with superposition and parallelism.</p>
+        </div>
+        <span class="learn-tag" style="background:#e8f0fe;color:var(--blue)">Foundation</span>
+      </div>
+
+      <div class="learn-card reveal reveal-delay-2">
+        <div class="learn-icon" style="background:#f3effe">⚛️</div>
+        <div>
+          <h3>Qubits &amp; the Bloch Sphere</h3>
+          <p>The state |ψ⟩ = α|0⟩ + β|1⟩, what the Born rule means, and how every qubit state maps to a point on a 3D sphere surface.</p>
+        </div>
+        <span class="learn-tag" style="background:#f3effe;color:var(--purple)">Core Concept</span>
+      </div>
+
+      <div class="learn-card reveal reveal-delay-3">
+        <div class="learn-icon" style="background:#ecfdf5">🔭</div>
+        <div>
+          <h3>Quantum Measurement</h3>
+          <p>How observation collapses superposition, why this is irreversible, what Schrödinger's cat really illustrates, and why algorithms must measure last.</p>
+        </div>
+        <span class="learn-tag" style="background:#ecfdf5;color:#0ca678">Phenomenon</span>
+      </div>
+
+      <div class="learn-card reveal reveal-delay-1">
+        <div class="learn-icon" style="background:#fff0ec">🧮</div>
+        <div>
+          <h3>Dirac (Bra-Ket) Notation</h3>
+          <p>The universal shorthand of quantum mechanics: kets, bras, inner products, orthonormal bases, and how matrix operations translate into gate operations.</p>
+        </div>
+        <span class="learn-tag" style="background:#fff0ec;color:#f76707">Mathematics</span>
+      </div>
+
+      <div class="learn-card reveal reveal-delay-2">
+        <div class="learn-icon" style="background:#f3effe">🔗</div>
+        <div>
+          <h3>Quantum Entanglement</h3>
+          <p>Bell states, non-local correlations, the 2022 Nobel Prize, and why entanglement is a computational resource rather than just a curiosity.</p>
+        </div>
+        <span class="learn-tag" style="background:#f3effe;color:var(--purple)">Phenomenon</span>
+      </div>
+
+      <div class="learn-card reveal reveal-delay-3">
+        <div class="learn-icon" style="background:#e8f0fe">🖥️</div>
+        <div>
+          <h3>Hardware &amp; Qiskit</h3>
+          <p>Superconducting, trapped-ion, photonic and topological qubit technologies, plus hands-on circuit programming with IBM's open-source Qiskit SDK.</p>
+        </div>
+        <span class="learn-tag" style="background:#e8f0fe;color:var(--blue)">Practical</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── RESOURCES ────────────────────────────────────────── -->
+<section class="section resources-section" id="resources">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label" style="color:var(--blue)">Unit I Materials</div>
+      <h2 class="section-title">Study resources</h2>
+      <p class="section-sub">A complete study guide and an interactive quiz — everything you need to prepare for Unit I.</p>
+    </div>
+
+    <div class="resources-grid" style="margin-top:3rem">
+
+      <!-- Study Guide card -->
+      <div class="resource-card reveal reveal-delay-1">
+        <div class="resource-card-top">
+          <span class="resource-badge" style="background:#e8f0fe;color:var(--blue);border:1.5px solid rgba(67,97,238,0.25)">
+            📘 Study Guide
+          </span>
+          <h3>Unit I — Complete Study Guide</h3>
+          <p>A fully interactive HTML reference covering every topic in Unit I with explanations, diagrams, comparison tables, Dirac notation tables, a Bloch sphere diagram, and a Qiskit code example.</p>
+          <ul class="resource-features">
+            <li><span class="feat-dot" style="background:var(--blue)"></span>8 sections, each explained clearly</li>
+            <li><span class="feat-dot" style="background:var(--blue)"></span>Animated Bloch sphere SVG with labeled states</li>
+            <li><span class="feat-dot" style="background:var(--blue)"></span>Classical vs Quantum comparison table</li>
+            <li><span class="feat-dot" style="background:var(--blue)"></span>Full Dirac notation reference</li>
+            <li><span class="feat-dot" style="background:var(--blue)"></span>Syntax-highlighted Qiskit Bell state code</li>
+            <li><span class="feat-dot" style="background:var(--blue)"></span>Scroll-reveal animations &amp; progress bar</li>
+          </ul>
+        </div>
+        <div class="resource-card-footer">
+          <a href="Quantum_Unit1_StudyGuide.html" class="resource-link" style="background:var(--blue);color:white;box-shadow:0 4px 16px rgba(67,97,238,0.35)">
+            Open Study Guide
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quiz card -->
+      <div class="resource-card reveal reveal-delay-2">
+        <div class="resource-card-top">
+          <span class="resource-badge" style="background:#ecfdf5;color:#0ca678;border:1.5px solid rgba(12,166,120,0.25)">
+            🧠 Interactive Quiz
+          </span>
+          <h3>Unit I — Knowledge Quiz</h3>
+          <p>Test your understanding with 5 carefully crafted questions. Every wrong answer shows a detailed explanation of the concept so you learn from mistakes, not just avoid them.</p>
+          <ul class="resource-features">
+            <li><span class="feat-dot" style="background:#0ca678"></span>5 questions · 20 marks each · 100 total</li>
+            <li><span class="feat-dot" style="background:#0ca678"></span>Covers Born Rule, Bloch sphere, measurement</li>
+            <li><span class="feat-dot" style="background:#0ca678"></span>Dirac notation &amp; Bell state entanglement</li>
+            <li><span class="feat-dot" style="background:#0ca678"></span>Instant feedback with wrong-answer explanations</li>
+            <li><span class="feat-dot" style="background:#0ca678"></span>Graded score: A+ to D with personalised message</li>
+            <li><span class="feat-dot" style="background:#0ca678"></span>Retry as many times as you like</li>
+          </ul>
+        </div>
+        <div class="resource-card-footer">
+          <a href="Quantum_Unit1_Quiz.html" class="resource-link" style="background:#0ca678;color:white;box-shadow:0 4px 16px rgba(12,166,120,0.35)">
+            Start Quiz
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── COURSE INFO STRIP ────────────────────────────────── -->
+<div class="info-strip">
+  <div class="info-strip-inner">
+    <div class="reveal">
+      <h2>Course at a glance</h2>
+      <p>Introduction to Quantum Computing prepares you to design quantum algorithms, implement them in Qiskit, and understand their real-world applications in cryptography, optimization, and machine learning.</p>
+      <div class="info-pills">
+        <span class="info-pill"><span class="info-pill-icon">📅</span> Sessional: 40 marks</span>
+        <span class="info-pill"><span class="info-pill-icon">📝</span> End Exam: 60 marks · 3 hours</span>
+        <span class="info-pill"><span class="info-pill-icon">🐍</span> Python / Qiskit</span>
+        <span class="info-pill"><span class="info-pill-icon">🎓</span> Pre-req: Linear Algebra, Probability</span>
+        <span class="info-pill"><span class="info-pill-icon">🔬</span> Nielsen &amp; Chuang — Textbook</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALL UNITS ────────────────────────────────────────── -->
+<section class="section units-section" id="units">
+  <div class="section-inner">
+    <div class="reveal">
+      <div class="section-label" style="color:var(--blue)">Full Course</div>
+      <h2 class="section-title">Five-unit roadmap</h2>
+      <p class="section-sub">Each unit builds on the previous. Unit I fundamentals appear in every subsequent topic.</p>
+    </div>
+
+    <div class="units-row reveal" style="margin-top:3rem">
+      <div class="unit-cell active">
+        <div class="unit-active-badge">Current</div>
+        <div class="unit-num">Unit I · 9 Lectures</div>
+        <h4>Fundamentals of Quantum Computing</h4>
+        <ul>
+          <li>⚛ Qubits &amp; Bloch Sphere</li>
+          <li>🔗 Entanglement</li>
+          <li>🧮 Dirac Notation</li>
+          <li>🖥️ Qiskit &amp; Hardware</li>
+        </ul>
+      </div>
+      <div class="unit-cell">
+        <div class="unit-num">Unit II · 9 Lectures</div>
+        <h4>Quantum Gates &amp; Circuits</h4>
+        <ul>
+          <li>Pauli, Hadamard, Phase gates</li>
+          <li>CNOT, Toffoli, SWAP</li>
+          <li>Reversible computation</li>
+          <li>Noise &amp; error basics</li>
+        </ul>
+      </div>
+      <div class="unit-cell">
+        <div class="unit-num">Unit III · 9 Lectures</div>
+        <h4>Quantum Search Algorithms</h4>
+        <ul>
+          <li>Grover's algorithm</li>
+          <li>Amplitude amplification</li>
+          <li>Oracle construction</li>
+          <li>Implementation in Qiskit</li>
+        </ul>
+      </div>
+      <div class="unit-cell">
+        <div class="unit-num">Unit IV · 9 Lectures</div>
+        <h4>Quantum Image Processing</h4>
+        <ul>
+          <li>FRQI &amp; NEQR models</li>
+          <li>Edge detection</li>
+          <li>Quantum Fourier Transform</li>
+          <li>Pattern recognition</li>
+        </ul>
+      </div>
+      <div class="unit-cell">
+        <div class="unit-num">Unit V · 9 Lectures</div>
+        <h4>Application Algorithms</h4>
+        <ul>
+          <li>VQE &amp; QAOA</li>
+          <li>Quantum ML classifiers</li>
+          <li>Drug discovery, finance</li>
+          <li>NISQ &amp; future directions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BOTTOM CTA ───────────────────────────────────────── -->
+<section class="cta-section">
+  <h2>Ready to start Unit I?</h2>
+  <p>Read the study guide first, then test yourself with the quiz. Both open instantly in your browser.</p>
+  <div class="cta-actions">
+    <a href="Quantum_Unit1_StudyGuide.html" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Study Guide
+    </a>
+    <a href="Quantum_Unit1_Quiz.html" class="btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Quiz
+    </a>
+  </div>
+</section>
+
+<!-- ── FOOTER ───────────────────────────────────────────── -->
+<footer>
+  <div class="footer-left">
+    <div>
+      <div class="footer-logo">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="3" fill="#06d6a0"/><ellipse cx="16" cy="16" rx="13" ry="5" stroke="#4361ee" stroke-width="1.5" fill="none"/><ellipse cx="16" cy="16" rx="13" ry="5" stroke="#4361ee" stroke-width="1.5" fill="none" transform="rotate(60 16 16)"/><ellipse cx="16" cy="16" rx="13" ry="5" stroke="#4361ee" stroke-width="1.5" fill="none" transform="rotate(120 16 16)"/></svg>
+        Introduction to Quantum Computing
+      </div>
+      <div class="footer-meta">23CS5144 &nbsp;·&nbsp; B.Tech CSE IV Year I Sem &nbsp;·&nbsp; R23 Regulation</div>
+    </div>
+  </div>
+  <div class="footer-right">
+    <div>3 Credits &nbsp;·&nbsp; 45 Lecture Hours</div>
+    <div style="margin-top:3px">Textbook: Nielsen &amp; Chuang · Qiskit Platform</div>
+  </div>
+</footer>
+
+<script>
+/* ── Nav scroll style ──────────────────────────────────── */
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+/* ── Scroll reveal ─────────────────────────────────────── */
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── Hero canvas — animated quantum circuit ─────────────── */
+(function () {
+  const canvas = document.getElementById('heroCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, nodes, pulses, frame;
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+    init();
+  }
+
+  /* Node types: qubit line endpoints and gate positions */
+  function init() {
+    nodes = [];
+    pulses = [];
+    const rows = 6;
+    const spacing = H / (rows + 1);
+
+    for (let r = 0; r < rows; r++) {
+      const y = spacing * (r + 1);
+      const gateCount = 3 + Math.floor(Math.random() * 3);
+      const gateSpacing = W / (gateCount + 1);
+      const row = { y, gates: [] };
+      for (let g = 0; g < gateCount; g++) {
+        row.gates.push({
+          x: gateSpacing * (g + 1) + (Math.random() - 0.5) * 40,
+          type: ['H','X','Z','T','S','CX'][Math.floor(Math.random()*6)],
+          alpha: 0,
+          delay: r * 18 + g * 22,
+        });
+      }
+      nodes.push(row);
+    }
+  }
+
+  function spawnPulse() {
+    const row = nodes[Math.floor(Math.random() * nodes.length)];
+    pulses.push({ y: row.y, x: -20, speed: 1.5 + Math.random() * 2, alpha: 0.9 });
+  }
+
+  let tick = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    tick++;
+
+    if (tick % 55 === 0) spawnPulse();
+
+    /* Horizontal qubit lines */
+    nodes.forEach(row => {
+      ctx.beginPath();
+      ctx.moveTo(0, row.y);
+      ctx.lineTo(W, row.y);
+      ctx.strokeStyle = 'rgba(67,97,238,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      /* Gates */
+      row.gates.forEach(g => {
+        if (tick > g.delay) {
+          g.alpha = Math.min(1, g.alpha + 0.025);
+        }
+        if (g.alpha <= 0) return;
+        ctx.globalAlpha = g.alpha;
+
+        if (g.type === 'CX') {
+          /* Control dot + target circle */
+          ctx.beginPath();
+          ctx.arc(g.x, row.y - 14, 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#4361ee';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(g.x, row.y + 14, 9, 0, Math.PI * 2);
+          ctx.strokeStyle = '#4361ee';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(g.x, row.y - 10);
+          ctx.lineTo(g.x, row.y + 5);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(g.x - 9, row.y + 14);
+          ctx.lineTo(g.x + 9, row.y + 14);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(g.x, row.y + 5);
+          ctx.lineTo(g.x, row.y + 23);
+          ctx.stroke();
+        } else {
+          /* Gate box */
+          const gateColors = { H:'#4361ee', X:'#06d6a0', Z:'#7209b7', T:'#ffd166', S:'#ef476f' };
+          const col = gateColors[g.type] || '#4361ee';
+          ctx.fillStyle = 'rgba(13,27,62,0.85)';
+          roundRect(ctx, g.x - 15, row.y - 15, 30, 30, 5);
+          ctx.fill();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, g.x - 15, row.y - 15, 30, 30, 5);
+          ctx.stroke();
+          ctx.fillStyle = col;
+          ctx.font = 'bold 13px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(g.type, g.x, row.y);
+        }
+        ctx.globalAlpha = 1;
+      });
+    });
+
+    /* Moving pulses */
+    pulses = pulses.filter(p => p.x < W + 20);
+    pulses.forEach(p => {
+      p.x += p.speed;
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12);
+      grad.addColorStop(0, `rgba(6,214,160,${p.alpha})`);
+      grad.addColorStop(1, 'rgba(6,214,160,0)');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    });
+
+    frame = requestAnimationFrame(draw);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  window.addEventListener('resize', () => { cancelAnimationFrame(frame); resize(); draw(); });
+
+  /* Respect reduced motion */
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    canvas.style.display = 'none';
+  } else {
+    resize();
+    draw();
+  }
+})();
+</script>
 </body>
 </html>
