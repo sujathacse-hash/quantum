@@ -1,0 +1,127 @@
+<h2 class="sr-only">Interactive Bloch sphere letting students set theta and phi, jump to any basis state, and drag to rotate the view</h2>
+<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:1rem 0">
+<div style="flex:0 0 340px">
+<canvas id="cv" width="340" height="340" style="width:100%;touch-action:none;cursor:grab"></canvas>
+<p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;text-align:center">drag to rotate the view</p>
+</div>
+<div style="flex:1;min-width:260px">
+<div style="background:var(--surface-1);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+<div id="ket" style="font-size:16px;font-weight:500;margin-bottom:6px"></div>
+<div id="probs" style="font-size:13px;color:var(--text-secondary)"></div>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+<label style="font-size:13px;color:var(--text-secondary);width:70px">theta</label>
+<input type="range" id="theta" min="0" max="180" value="0" step="1" style="flex:1">
+<span id="thetaOut" style="font-size:13px;font-weight:500;min-width:38px">0°</span>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+<label style="font-size:13px;color:var(--text-secondary);width:70px">phi</label>
+<input type="range" id="phi" min="0" max="360" value="0" step="1" style="flex:1">
+<span id="phiOut" style="font-size:13px;font-weight:500;min-width:38px">0°</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+<button data-t="0" data-p="0">|0⟩</button>
+<button data-t="180" data-p="0">|1⟩</button>
+<button data-t="90" data-p="0">|+⟩</button>
+<button data-t="90" data-p="180">|−⟩</button>
+<button data-t="90" data-p="90">|+i⟩</button>
+<button data-t="90" data-p="270">|−i⟩</button>
+</div>
+</div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const dpr=window.devicePixelRatio||1;
+cv.width=340*dpr;cv.height=340*dpr;ctx.scale(dpr,dpr);
+const cx=170,cy=170,R=125;
+let az=0.55,el=0.35;
+let theta=0,phi=0;
+const thetaEl=document.getElementById('theta'),phiEl=document.getElementById('phi');
+const thetaOut=document.getElementById('thetaOut'),phiOut=document.getElementById('phiOut');
+const ketEl=document.getElementById('ket'),probsEl=document.getElementById('probs');
+
+function project(x,y,z){
+  const cx1=x*Math.cos(az)-y*Math.sin(az);
+  const cy1=x*Math.sin(az)+y*Math.cos(az);
+  const sy=z*Math.cos(el)-cy1*Math.sin(el);
+  const depth=z*Math.sin(el)+cy1*Math.cos(el);
+  return {sx:cx+R*cx1, sy:cy-R*sy, depth};
+}
+function getColor(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function draw(){
+  ctx.clearRect(0,0,340,340);
+  const line=getColor('--border-strong')||'#999';
+  const textc=getColor('--text-secondary')||'#666';
+  const accent='#378ADD';
+  ctx.strokeStyle=line;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  for(let a=0;a<=360;a+=4){
+    const rad=a*Math.PI/180;
+    const p=project(Math.cos(rad),Math.sin(rad),0);
+    a===0?ctx.moveTo(p.sx,p.sy):ctx.lineTo(p.sx,p.sy);
+  }
+  ctx.strokeStyle=accent;ctx.stroke();
+  ctx.strokeStyle=line;
+  ctx.beginPath();
+  for(let a=0;a<=360;a+=4){
+    const rad=a*Math.PI/180;
+    const p=project(Math.cos(rad),0,Math.sin(rad));
+    a===0?ctx.moveTo(p.sx,p.sy):ctx.lineTo(p.sx,p.sy);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const labels=[{p:[0,0,1],t:'|0⟩'},{p:[0,0,-1],t:'|1⟩'},{p:[1,0,0],t:'|+⟩'},{p:[-1,0,0],t:'|−⟩'},{p:[0,1,0],t:'|+i⟩'},{p:[0,-1,0],t:'|−i⟩'}];
+  ctx.font='13px sans-serif';ctx.fillStyle=textc;ctx.textAlign='center';
+  labels.forEach(l=>{
+    const pr=project(...l.p);
+    ctx.beginPath();ctx.arc(pr.sx,pr.sy,3,0,7);ctx.fillStyle=line;ctx.fill();
+    ctx.fillStyle=textc;
+    ctx.fillText(l.t,pr.sx,pr.sy-10);
+  });
+  const rad=theta*Math.PI/180, rp=phi*Math.PI/180;
+  const x=Math.sin(rad)*Math.cos(rp), y=Math.sin(rad)*Math.sin(rp), z=Math.cos(rad);
+  const pt=project(x,y,z);
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(pt.sx,pt.sy);
+  ctx.strokeStyle='#D85A30';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(pt.sx,pt.sy,7,0,7);
+  ctx.fillStyle='#D85A30';ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function fmt(n){return Math.round(n*100)/100;}
+function update(){
+  thetaOut.textContent=theta+'°';
+  phiOut.textContent=phi+'°';
+  const rad=theta*Math.PI/180;
+  const p0=fmt(Math.cos(rad/2)**2*100);
+  const p1=fmt(100-p0);
+  ketEl.innerHTML='|ψ⟩ = cos('+theta+'°/2)|0⟩ + e^{i'+phi+'°}sin('+theta+'°/2)|1⟩';
+  probsEl.textContent='P(0) = '+p0+'%    P(1) = '+p1+'%';
+  draw();
+}
+thetaEl.addEventListener('input',e=>{theta=+e.target.value;update();});
+phiEl.addEventListener('input',e=>{phi=+e.target.value;update();});
+document.querySelectorAll('button[data-t]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    theta=+b.dataset.t;phi=+b.dataset.p;
+    thetaEl.value=theta;phiEl.value=phi;
+    update();
+  });
+});
+let dragging=false,lastX=0,lastY=0;
+cv.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  az+=(e.clientX-lastX)*0.008;
+  el-=(e.clientY-lastY)*0.008;
+  el=Math.max(-1.4,Math.min(1.4,el));
+  lastX=e.clientX;lastY=e.clientY;
+  draw();
+});
+cv.addEventListener('pointerup',()=>dragging=false);
+cv.addEventListener('pointerleave',()=>dragging=false);
+update();
+</script>

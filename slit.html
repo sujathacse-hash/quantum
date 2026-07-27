@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Young's Double Slit Experiment — Interactive</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#161c2b; --border:#2a3346; --text:#e8ecf5;
+    --muted:#8b93a8; --accent:#5aa9ff; --accent2:#ff9e5a; --bright:#ffe28a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); padding:24px;
+  }
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 20px;}
+  .layout{display:grid; grid-template-columns:1fr 300px; gap:20px; max-width:1100px; margin:0 auto;}
+  @media (max-width:850px){ .layout{grid-template-columns:1fr;} }
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px;}
+  canvas{width:100%; display:block; background:#070a12; border-radius:8px;}
+  .controls label{display:block; font-size:13px; color:var(--muted); margin:14px 0 6px;}
+  .controls label:first-child{margin-top:0;}
+  .row{display:flex; justify-content:space-between; align-items:baseline;}
+  .val{color:var(--text); font-weight:600; font-size:13px;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .btn{
+    width:100%; margin-top:16px; padding:10px; border-radius:8px; border:1px solid var(--border);
+    background:#1d2438; color:var(--text); cursor:pointer; font-size:14px;
+  }
+  .btn:hover{background:#252c42;}
+  .legend{display:flex; gap:16px; font-size:12px; color:var(--muted); margin-top:10px; flex-wrap:wrap;}
+  .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;}
+  .note{font-size:12px; color:var(--muted); line-height:1.5; margin-top:16px; border-top:1px solid var(--border); padding-top:12px;}
+</style>
+</head>
+<body>
+  <h1>Young's double slit experiment</h1>
+  <p class="sub">Adjust wavelength and slit spacing to see how the interference pattern changes in real time.</p>
+
+  <div class="layout">
+    <div class="panel">
+      <canvas id="stage" width="800" height="500"></canvas>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent)"></span>Wave from slit 1</span>
+        <span><span class="dot" style="background:var(--accent2)"></span>Wave from slit 2</span>
+        <span><span class="dot" style="background:var(--bright)"></span>Bright fringe (constructive)</span>
+      </div>
+    </div>
+
+    <div class="panel controls">
+      <label class="row"><span>Wavelength (color)</span><span class="val" id="lambdaVal"></span></label>
+      <input type="range" id="lambda" min="380" max="700" value="550" step="5">
+
+      <label class="row"><span>Slit separation (d)</span><span class="val" id="dVal"></span></label>
+      <input type="range" id="dSep" min="20" max="120" value="60" step="2">
+
+      <label class="row"><span>Screen distance</span><span class="val" id="lVal"></span></label>
+      <input type="range" id="lDist" min="300" max="700" value="500" step="10">
+
+      <label class="row"><span>Animation speed</span><span class="val" id="speedVal"></span></label>
+      <input type="range" id="speed" min="0" max="5" value="2" step="1">
+
+      <button class="btn" id="toggle">Pause animation</button>
+      <button class="btn" id="detectorToggle" style="border-color:#ff9e5a;">Add detector at slits</button>
+
+      <div class="note" id="modeNote">
+        <strong style="color:var(--text)">Superposition:</strong> where the two circular waves cross, their heights simply add together — that's all superposition means, waves stacking on top of each other.
+        <br><br>
+        <strong style="color:var(--text)">Interference:</strong> the visible result of that adding. Where two crests line up, they add to a bigger crest (constructive interference → bright fringe). Where a crest meets a trough, they cancel out (destructive interference → dark fringe).
+        <br><br>
+        Shorter wavelength or wider slit spacing → fringes squeeze closer together. Longer wavelength or narrower spacing → fringes spread further apart. Fringe spacing ∝ λ / d.
+      </div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const lambdaSlider = document.getElementById('lambda');
+const dSlider = document.getElementById('dSep');
+const lSlider = document.getElementById('lDist');
+const speedSlider = document.getElementById('speed');
+const toggleBtn = document.getElementById('toggle');
+
+let running = true;
+let t = 0;
+let detectorOn = false;
+let particles = []; // {x,y,vx,vy,slit,alive}
+let histogram = new Array(240).fill(0); // bins along screen height
+let spawnTimer = 0;
+
+function resetHistogram(){ histogram = new Array(240).fill(0); particles = []; }
+
+function wavelengthToColor(nm){
+  // simple visible spectrum approximation
+  let r,g,b;
+  if(nm < 440){ r=-(nm-440)/(440-380); g=0; b=1; }
+  else if(nm < 490){ r=0; g=(nm-440)/(490-440); b=1; }
+  else if(nm < 510){ r=0; g=1; b=-(nm-510)/(510-490); }
+  else if(nm < 580){ r=(nm-510)/(580-510); g=1; b=0; }
+  else if(nm < 645){ r=1; g=-(nm-645)/(645-580); b=0; }
+  else { r=1; g=0; b=0; }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+
+function update(){
+  const lambda = +lambdaSlider.value;
+  const d = +dSlider.value;
+  const L = +lSlider.value;
+  const speedStep = +speedSlider.value;
+
+  document.getElementById('lambdaVal').textContent = lambda + ' nm';
+  document.getElementById('dVal').textContent = d + ' px';
+  document.getElementById('lVal').textContent = L + ' px';
+  document.getElementById('speedVal').textContent = speedStep === 0 ? 'paused' : speedStep + 'x';
+
+  const [r,g,b] = wavelengthToColor(lambda);
+  const colA = `rgb(${r},${Math.min(255,g+40)},${b})`;
+  const colB = `rgb(${Math.min(255,r+60)},${g},${b})`;
+
+  ctx.clearRect(0,0,W,H);
+
+  const slitX = 160;
+  const slit1Y = H/2 - d/2;
+  const slit2Y = H/2 + d/2;
+  const screenX = W - 120;
+
+  // barrier
+  ctx.fillStyle = '#3a4360';
+  ctx.fillRect(slitX-4, 20, 8, slit1Y-20-8);
+  ctx.fillRect(slitX-4, slit1Y+8, 8, slit2Y-slit1Y-16);
+  ctx.fillRect(slitX-4, slit2Y+8, 8, H-40-slit2Y);
+
+  // source
+  ctx.fillStyle = '#5aa9ff';
+  ctx.beginPath(); ctx.arc(40, H/2, 6, 0, 7); ctx.fill();
+  ctx.fillStyle = '#8b93a8'; ctx.font='12px sans-serif';
+  ctx.fillText('Source', 20, H/2+22);
+
+  const k = 2*Math.PI/(lambda/12); // spatial frequency, scaled for visualization
+  const phase = t * (0.02 * (speedStep||0.001));
+
+  if(!detectorOn){
+    // ---- WAVE MODE: full interference visualization ----
+
+    // circular wavefronts from each slit (visual rings)
+    ctx.globalAlpha = 0.5;
+    for(let ring=0; ring<8; ring++){
+      const radius = ((phase*40 + ring*40) % 400) + 4;
+      if(slitX + radius > screenX + 20) continue;
+      ctx.strokeStyle = colA;
+      ctx.beginPath(); ctx.arc(slitX, slit1Y, radius, -Math.PI/2, Math.PI/2); ctx.stroke();
+      ctx.strokeStyle = colB;
+      ctx.beginPath(); ctx.arc(slitX, slit2Y, radius, -Math.PI/2, Math.PI/2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // screen line
+    ctx.strokeStyle = '#3a4360';
+    ctx.beginPath(); ctx.moveTo(screenX, 20); ctx.lineTo(screenX, H-20); ctx.stroke();
+    ctx.fillStyle = '#8b93a8';
+    ctx.fillText('Screen', screenX-10, 16);
+
+    // label: superposition zone
+    ctx.fillStyle = 'rgba(139,147,168,0.9)';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Superposition zone', slitX + 60, 40);
+    ctx.font = '11px sans-serif';
+    ctx.fillText('waves from both slits overlap and add together', slitX + 60, 55);
+    ctx.strokeStyle = 'rgba(139,147,168,0.6)';
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(slitX + 55, 60); ctx.lineTo(slitX + 110, H/2 - 20); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // label: interference pattern
+    ctx.fillStyle = 'rgba(255,226,138,0.95)';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Interference pattern', screenX + 40, H/2 - 10);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(255,226,138,0.8)';
+    ctx.fillText('bright = constructive', screenX + 40, H/2 + 6);
+    ctx.fillText('dark = destructive', screenX + 40, H/2 + 20);
+
+    // real double-slit intensity formula
+    const barWidth = 26;
+    for(let y=20; y<H-20; y+=2){
+      const yc = y - H/2;
+      const pathDiff = d * yc / L;
+      const phaseDiff = (2*Math.PI * pathDiff) / (lambda/12);
+      const intensity = Math.pow(Math.cos(phaseDiff/2), 2);
+      const [rr,gg,bb] = wavelengthToColor(lambda);
+      ctx.fillStyle = `rgba(${rr},${gg},${bb},${intensity})`;
+      ctx.fillRect(screenX+6, y, barWidth, 2.2);
+    }
+
+  } else {
+    // ---- DETECTOR MODE: which-path measurement, particles, no interference ----
+
+    // detector boxes at each slit
+    ctx.strokeStyle = '#ff9e5a';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(slitX - 26, slit1Y - 10, 20, 20);
+    ctx.strokeRect(slitX - 26, slit2Y - 10, 20, 20);
+    ctx.fillStyle = '#ff9e5a';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('D1', slitX - 24, slit1Y + 3);
+    ctx.fillText('D2', slitX - 24, slit2Y + 3);
+    ctx.lineWidth = 1;
+
+    // screen line
+    ctx.strokeStyle = '#3a4360';
+    ctx.beginPath(); ctx.moveTo(screenX, 20); ctx.lineTo(screenX, H-20); ctx.stroke();
+    ctx.fillStyle = '#8b93a8';
+    ctx.fillText('Screen', screenX-10, 16);
+
+    // label: which-path known
+    ctx.fillStyle = 'rgba(255,158,90,0.95)';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('Detectors reveal which slit', slitX + 40, 40);
+    ctx.font = '11px sans-serif';
+    ctx.fillText('each particle passes through', slitX + 40, 55);
+
+    ctx.fillStyle = 'rgba(139,147,168,0.9)';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('No interference pattern', screenX + 40, H/2 - 10);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(139,147,168,0.8)';
+    ctx.fillText('just two overlapping blobs', screenX + 40, H/2 + 6);
+    ctx.fillText('(sum of two single slits)', screenX + 40, H/2 + 20);
+
+    // spawn particles periodically
+    spawnTimer += speedStep || 1;
+    if(spawnTimer > 12 && particles.length < 40){
+      spawnTimer = 0;
+      const useSlit1 = Math.random() < 0.5;
+      const originY = useSlit1 ? slit1Y : slit2Y;
+      // single-slit diffraction spread (gaussian-ish), narrower slit -> wider spread
+      const spread = 30 + (140/d)*20;
+      const targetY = originY + (Math.random()-0.5)*2*spread*0.6 + (Math.random()-0.5)*spread*0.6;
+      particles.push({x:40, y:H/2, midX:slitX, midY:originY, targetY, screenX, alive:true, prog:0});
+    }
+
+    // animate & draw particles
+    const [rr,gg,bb] = wavelengthToColor(lambda);
+    ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+    for(let i=particles.length-1; i>=0; i--){
+      const p = particles[i];
+      p.prog += 0.03 * (speedStep || 1);
+      let px, py;
+      if(p.prog < 0.5){
+        const f = p.prog/0.5;
+        px = p.x + (p.midX - p.x)*f;
+        py = p.y + (p.midY - p.y)*f;
+      } else {
+        const f = (p.prog-0.5)/0.5;
+        px = p.midX + (p.screenX - p.midX)*f;
+        py = p.midY + (p.targetY - p.midY)*f;
+      }
+      ctx.beginPath(); ctx.arc(px, py, 3, 0, 7); ctx.fill();
+
+      if(p.prog >= 1){
+        const bin = Math.max(0, Math.min(histogram.length-1, Math.floor(((p.targetY-20)/(H-40))*histogram.length)));
+        histogram[bin] += 1;
+        particles.splice(i,1);
+      }
+    }
+
+    // draw accumulated histogram as single-color bars (no fringes)
+    const maxCount = Math.max(1, ...histogram);
+    const barW = 26;
+    for(let i=0;i<histogram.length;i++){
+      const yTop = 20 + (i/histogram.length)*(H-40);
+      const hgt = (H-40)/histogram.length;
+      const norm = histogram[i]/maxCount;
+      ctx.fillStyle = `rgba(${rr},${gg},${bb},${0.15 + norm*0.75})`;
+      ctx.fillRect(screenX+6, yTop, barW, hgt+0.5);
+    }
+  }
+
+  t += speedStep ? 1 : 0;
+}
+
+function loop(){
+  if(running) update();
+  requestAnimationFrame(loop);
+}
+
+toggleBtn.addEventListener('click', ()=>{
+  running = !running;
+  toggleBtn.textContent = running ? 'Pause animation' : 'Resume animation';
+  if(!running) update();
+});
+
+const detectorBtn = document.getElementById('detectorToggle');
+const modeNote = document.getElementById('modeNote');
+const waveNoteHTML = modeNote.innerHTML;
+const detectorNoteHTML = `
+  <strong style="color:var(--text)">Which-path measurement:</strong> the detectors at each slit record which slit every particle actually goes through.
+  <br><br>
+  Once that information exists, each particle behaves as a simple particle taking one definite path — there's no wave to superpose, so there's nothing left to interfere.
+  <br><br>
+  The screen just shows two overlapping blobs (the sum of two single-slit patterns), not fringes. This is the famous observer effect: measuring "which path" destroys the interference pattern.
+`;
+
+detectorBtn.addEventListener('click', ()=>{
+  detectorOn = !detectorOn;
+  resetHistogram();
+  detectorBtn.textContent = detectorOn ? 'Remove detector' : 'Add detector at slits';
+  modeNote.innerHTML = detectorOn ? detectorNoteHTML : waveNoteHTML;
+  if(!running) update();
+});
+
+[lambdaSlider,dSlider,lSlider,speedSlider].forEach(s=>s.addEventListener('input', ()=>{ resetHistogram(); if(!running) update(); }));
+
+update();
+loop();
+</script>
+</body>
+</html>
