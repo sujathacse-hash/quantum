@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Circuit &amp; Phenomena Lab</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface-1: #f4f6fb;
+    --surface-2: #eef0f7;
+    --navy: #0b1220;
+    --navy-2: #121b33;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --purple: #4f46e5;
+    --purple-dark: #3730a3;
+    --teal: #0f6e56;
+    --teal-light: #e1f5ee;
+    --coral: #d85a30;
+    --coral-light: #faece7;
+    --pink: #d4537e;
+    --pink-light: #fbeaf0;
+    --green-bg: #ecfdf5;
+    --green-border: #059669;
+    --red-bg: #fef2f2;
+    --red-border: #dc2626;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+  .page { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  header { text-align: center; margin-bottom: 2rem; }
+  header .kicker { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--purple); font-weight: 600; margin-bottom: 6px; }
+  header h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; }
+  header p { color: var(--text-secondary); font-size: 14px; max-width: 560px; margin: 0 auto; }
+  nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+  nav button {
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  nav button.active { background: var(--purple); border-color: var(--purple); color: #ffffff; }
+  section.panel { display: none; }
+  section.panel.active { display: block; }
+  .card { background: var(--surface-1); border-radius: 14px; padding: 1.5rem; border: 1px solid var(--border); margin-bottom: 1.25rem; }
+  .card h2 { font-size: 16px; margin: 0 0 6px; }
+  .card .sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 1rem; }
+  button.action {
+    padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: #ffffff; color: var(--text-primary); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  button.action:hover:not(:disabled) { background: var(--surface-2); }
+  button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--purple); border-color: var(--purple); color: #ffffff; }
+  button.primary:hover { background: var(--purple-dark); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .ket-box { text-align: center; margin-bottom: 1rem; }
+  .ket-box .ket { font-family: monospace; font-size: 18px; font-weight: 700; }
+  .ket-box .sub2 { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .bar-row .name { font-size: 12px; font-family: monospace; width: 60px; }
+  .bar-track { flex: 1; height: 22px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; transition: width 0.3s ease; }
+  .fill-purple { background: var(--purple); }
+  .fill-teal { background: var(--teal); }
+  .fill-coral { background: var(--coral); }
+  .fill-pink { background: var(--pink); }
+  .bar-row .pct { font-size: 12px; font-family: monospace; width: 44px; text-align: right; }
+  .steps { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 1.25rem 0; }
+  .step-chip {
+    padding: 10px 16px; border-radius: 999px; font-family: monospace; font-weight: 700; font-size: 15px;
+    background: var(--navy-2); color: var(--text-muted); border: 1px solid #263452;
+  }
+  .step-chip.done { background: var(--navy); color: #ffffff; border-color: var(--purple); }
+  .step-chip.current { background: var(--purple); color: #ffffff; }
+  .arrow { color: var(--text-muted); font-size: 16px; }
+  .explain-box { background: var(--navy); color: #e2e8f0; border-radius: var(--radius); padding: 1rem 1.2rem; font-size: 13.5px; line-height: 1.5; }
+  .explain-box b { color: #22d3ee; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .slider-row label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .out { font-size: 13px; font-weight: 700; min-width: 40px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+  .stat-card { background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.8rem; text-align: center; }
+  .stat-card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+  .stat-card .value { font-size: 20px; font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 2.5rem; }
+  .tip { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-top: 0.5rem; }
+  .circuit-box { background: var(--navy); border-radius: var(--radius); padding: 0.75rem 0.5rem; margin-bottom: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="kicker">Classroom simulation</div>
+  <h1>Quantum Circuit &amp; Phenomena Lab</h1>
+  <p>Build simple circuits and watch interference, parallelism, and noise happen live — one tab per phenomenon.</p>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-panel="p1">1. Build a Circuit</button>
+  <button class="tab-btn" data-panel="p2">2. Interference</button>
+  <button class="tab-btn" data-panel="p3">3. Parallelism</button>
+  <button class="tab-btn" data-panel="p4">4. Noise</button>
+</nav>
+
+<!-- ============ TAB 1: BUILD A CIRCUIT ============ -->
+<section class="panel active" id="p1">
+  <div class="card">
+    <h2>Design a single-qubit circuit</h2>
+    <div class="sub">Apply gates one at a time and watch the state change. Start simple: try H alone, then H then X, then H then Z then H.</div>
+
+    <div class="circuit-box">
+      <svg id="t1-circuit" viewBox="0 0 660 110" style="width:100%; height:auto;"></svg>
+    </div>
+
+    <div class="ket-box">
+      <div class="ket" id="t1-ket">|0&#10217;</div>
+      <div class="sub2" id="t1-sub">&#945; = 1, &#946; = 0</div>
+    </div>
+
+    <div class="bar-row"><span class="name">P(0)</span><div class="bar-track"><div class="bar-fill fill-purple" id="t1-bar0" style="width:100%;"></div></div><span class="pct" id="t1-p0">100%</span></div>
+    <div class="bar-row"><span class="name">P(1)</span><div class="bar-track"><div class="bar-fill fill-teal" id="t1-bar1" style="width:0%;"></div></div><span class="pct" id="t1-p1">0%</span></div>
+
+    <div class="row" style="margin-top:1rem;">
+      <button class="action" id="t1-h">Apply H</button>
+      <button class="action" id="t1-x">Apply X</button>
+      <button class="action" id="t1-z">Apply Z</button>
+      <button class="action" id="t1-reset">Reset</button>
+    </div>
+    <div class="tip">Gates applied: <span id="t1-history">(none yet)</span></div>
+  </div>
+</section>
+
+<!-- ============ TAB 2: INTERFERENCE ============ -->
+<section class="panel" id="p2">
+  <div class="card">
+    <h2>Interference: H &#8594; Z &#8594; H</h2>
+    <div class="sub">Step through the classic demonstration. Predict what P(0) will be after each step before clicking Next.</div>
+
+    <div class="circuit-box">
+      <svg id="t2-circuit" viewBox="0 0 660 110" style="width:100%; height:auto;"></svg>
+    </div>
+
+    <div class="steps" id="t2-steps"></div>
+
+    <div class="grid2" style="margin-bottom:1rem;">
+      <div class="bar-row" style="grid-column: 1 / -1;"><span class="name">P(0)</span><div class="bar-track"><div class="bar-fill fill-purple" id="t2-bar0" style="width:100%;"></div></div><span class="pct" id="t2-p0">100%</span></div>
+      <div class="bar-row" style="grid-column: 1 / -1;"><span class="name">P(1)</span><div class="bar-track"><div class="bar-fill fill-teal" id="t2-bar1" style="width:0%;"></div></div><span class="pct" id="t2-p1">0%</span></div>
+    </div>
+
+    <div class="explain-box" id="t2-explain">Click <b>Next step</b> to apply the first Hadamard.</div>
+
+    <div class="row" style="margin-top:1rem;">
+      <button class="action primary" id="t2-next">Next step</button>
+      <button class="action" id="t2-reset">Restart</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3: PARALLELISM ============ -->
+<section class="panel" id="p3">
+  <div class="card">
+    <h2>Parallelism: one circuit, four inputs</h2>
+    <div class="sub">Apply H to both qubits to reach an equal superposition of 00, 01, 10, 11. Then apply an "oracle" that marks one specific input — watch it get marked in all four branches simultaneously, in a single application.</div>
+
+    <div class="circuit-box">
+      <svg id="t3-circuit" viewBox="0 0 660 150" style="width:100%; height:auto;"></svg>
+    </div>
+
+    <div class="bar-row"><span class="name">|00&#10217;</span><div class="bar-track"><div class="bar-fill fill-purple" id="t3-bar00" style="width:0%;"></div></div><span class="pct" id="t3-p00">0%</span></div>
+    <div class="bar-row"><span class="name">|01&#10217;</span><div class="bar-track"><div class="bar-fill fill-teal" id="t3-bar01" style="width:0%;"></div></div><span class="pct" id="t3-p01">0%</span></div>
+    <div class="bar-row"><span class="name">|10&#10217;</span><div class="bar-track"><div class="bar-fill fill-coral" id="t3-bar10" style="width:0%;"></div></div><span class="pct" id="t3-p10">0%</span></div>
+    <div class="bar-row"><span class="name">|11&#10217;</span><div class="bar-track"><div class="bar-fill fill-pink" id="t3-bar11" style="width:0%;"></div></div><span class="pct" id="t3-p11">0%</span></div>
+
+    <div class="row" style="margin-top:1rem;">
+      <button class="action" id="t3-h">Apply H&#8855;H</button>
+      <button class="action" id="t3-oracle" disabled>Apply oracle (marks |11&#10217;)</button>
+      <button class="action" id="t3-reset">Reset</button>
+    </div>
+    <div class="explain-box" id="t3-explain">Start: |00&#10217; with 100% probability. Apply H&#8855;H to spread across all four basis states at once.</div>
+  </div>
+</section>
+
+<!-- ============ TAB 4: NOISE ============ -->
+<section class="panel" id="p4">
+  <div class="card">
+    <h2>The impact of noise</h2>
+    <div class="sub">Prepare a qubit at |0&#10217; (a deterministic circuit &mdash; ideally 100% "0" every time), then send it through a noisy bit-flip channel before measuring. Run many trials and watch the result drift away from the ideal as you raise the noise level.</div>
+
+    <div class="circuit-box">
+      <svg id="t4-circuit" viewBox="0 0 660 110" style="width:100%; height:auto;"></svg>
+    </div>
+
+    <div class="slider-row">
+      <label>Noise probability p</label>
+      <input type="range" min="0" max="50" step="5" value="0" id="t4-noise">
+      <span class="out" id="t4-noise-out">0%</span>
+    </div>
+    <div class="slider-row">
+      <label>Trials per run</label>
+      <input type="range" min="20" max="500" step="20" value="200" id="t4-trials">
+      <span class="out" id="t4-trials-out">200</span>
+    </div>
+
+    <div class="row">
+      <button class="action primary" id="t4-run">Run trials</button>
+      <button class="action" id="t4-reset">Reset</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Total trials</div><div class="value" id="t4-total">0</div></div>
+      <div class="stat-card"><div class="label">Measured 0</div><div class="value" id="t4-count0">0</div></div>
+      <div class="stat-card"><div class="label">Measured 1</div><div class="value" id="t4-count1">0</div></div>
+    </div>
+
+    <div class="bar-row"><span class="name">P(0)</span><div class="bar-track"><div class="bar-fill fill-purple" id="t4-bar0" style="width:100%;"></div></div><span class="pct" id="t4-p0">100%</span></div>
+    <div class="bar-row"><span class="name">P(1)</span><div class="bar-track"><div class="bar-fill fill-teal" id="t4-bar1" style="width:0%;"></div></div><span class="pct" id="t4-p1">0%</span></div>
+
+    <div class="explain-box" id="t4-explain" style="margin-top:0.75rem;">With p = 0%, this circuit should give "0" every single time. Raise the slider and re-run to see how much a noisy channel can corrupt an otherwise perfectly deterministic result.</div>
+  </div>
+</section>
+
+<footer>Open this file in any browser &mdash; no internet connection required. Designed for live, predict-then-verify classroom demonstrations.</footer>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.panel).classList.add('active');
+  });
+});
+
+// ---------- shared complex-number helpers ----------
+function cx(re, im) { return { re: re, im: im }; }
+function cAdd(a, b) { return cx(a.re + b.re, a.im + b.im); }
+function cMul(a, b) { return cx(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re); }
+function cAbs2(a) { return a.re * a.re + a.im * a.im; }
+var SQRT1_2 = Math.SQRT1_2;
+
+// ---------- shared SVG circuit-drawing helpers ----------
+var SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+function drawWire(svg, x1, x2, y, label) {
+  svg.appendChild(svgEl('line', { x1: x1, y1: y, x2: x2, y2: y, stroke: '#475569', 'stroke-width': 2 }));
+  if (label) {
+    var t = svgEl('text', { x: x1 - 12, y: y + 5, 'font-family': 'Consolas,monospace', 'font-size': 15, fill: '#e2e8f0', 'text-anchor': 'end' });
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+}
+function drawGateBox(svg, x, y, label, fill, stroke, textColor) {
+  svg.appendChild(svgEl('rect', { x: x - 18, y: y - 18, width: 36, height: 36, rx: 5, fill: fill, stroke: stroke || 'none', 'stroke-width': 2 }));
+  var t = svgEl('text', { x: x, y: y + 6, 'font-family': 'Consolas,monospace', 'font-size': 16, 'font-weight': 700, fill: textColor || '#ffffff', 'text-anchor': 'middle' });
+  t.textContent = label;
+  svg.appendChild(t);
+}
+function drawControlTarget(svg, x, yControl, yTarget, color) {
+  svg.appendChild(svgEl('line', { x1: x, y1: yControl, x2: x, y2: yTarget, stroke: color || '#e2e8f0', 'stroke-width': 2 }));
+  svg.appendChild(svgEl('circle', { cx: x, cy: yControl, r: 6, fill: color || '#e2e8f0' }));
+  svg.appendChild(svgEl('circle', { cx: x, cy: yTarget, r: 15, fill: '#0b1220', stroke: color || '#e2e8f0', 'stroke-width': 2 }));
+  svg.appendChild(svgEl('line', { x1: x - 15, y1: yTarget, x2: x + 15, y2: yTarget, stroke: color || '#e2e8f0', 'stroke-width': 1.5 }));
+  svg.appendChild(svgEl('line', { x1: x, y1: yTarget - 15, x2: x, y2: yTarget + 15, stroke: color || '#e2e8f0', 'stroke-width': 1.5 }));
+}
+function drawMeasure(svg, x, y) {
+  svg.appendChild(svgEl('rect', { x: x - 20, y: y - 18, width: 40, height: 36, rx: 5, fill: '#1e2a4a', stroke: '#94a3b8', 'stroke-width': 1.25 }));
+  var arc = svgEl('path', { d: 'M ' + (x - 11) + ' ' + (y + 6) + ' A 11 11 0 0 1 ' + (x + 11) + ' ' + (y + 6), fill: 'none', stroke: '#e2e8f0', 'stroke-width': 1.5 });
+  svg.appendChild(arc);
+  svg.appendChild(svgEl('line', { x1: x, y1: y + 6, x2: x + 7, y2: y - 7, stroke: '#e2e8f0', 'stroke-width': 1.5 }));
+}
+function drawNoiseSymbol(svg, x, y, pct) {
+  var g = svgEl('g', {});
+  var pts = [[x - 22, y], [x - 12, y - 12], [x - 2, y + 10], [x + 8, y - 12], [x + 18, y + 8], [x + 22, y]];
+  var d = 'M ' + pts.map(function (p) { return p[0] + ' ' + p[1]; }).join(' L ');
+  g.appendChild(svgEl('path', { d: d, fill: 'none', stroke: pct > 0 ? '#dc2626' : '#334155', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+  svg.appendChild(g);
+  var t = svgEl('text', { x: x, y: y + 32, 'font-family': 'Consolas,monospace', 'font-size': 11, fill: pct > 0 ? '#fca5a5' : '#64748b', 'text-anchor': 'middle' });
+  t.textContent = 'noise p=' + pct + '%';
+  svg.appendChild(t);
+}
+function clearSvg(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+
+// ============ TAB 1 ============
+(function () {
+  var alpha = cx(1, 0), beta = cx(0, 0);
+  var history = [];
+  var gateColors = { H: '#4f46e5', X: '#0f6e56', Z: '#d85a30' };
+
+  function applyMatrix(m) {
+    var na = cAdd(cMul(m[0][0], alpha), cMul(m[0][1], beta));
+    var nb = cAdd(cMul(m[1][0], alpha), cMul(m[1][1], beta));
+    alpha = na; beta = nb;
+  }
+  function fmt(v) { return (Math.round(v * 100) / 100).toFixed(2); }
+
+  function renderCircuit() {
+    var svg = document.getElementById('t1-circuit');
+    clearSvg(svg);
+    var y = 55, x1 = 70, x2 = 620;
+    drawWire(svg, x1, x2, y, '|0\u27E9');
+    var spacing = 70, startX = 130;
+    history.forEach(function (g, i) {
+      drawGateBox(svg, startX + i * spacing, y, g, gateColors[g]);
+    });
+    if (history.length === 0) {
+      var t = svgEl('text', { x: (x1 + x2) / 2, y: y - 25, 'font-family': 'Calibri,sans-serif', 'font-size': 12, fill: '#64748b', 'text-anchor': 'middle', 'font-style': 'italic' });
+      t.textContent = 'no gates applied yet \u2014 click a button below';
+      svg.appendChild(t);
+    }
+  }
+
+  function render() {
+    var p0 = cAbs2(alpha), p1 = cAbs2(beta);
+    document.getElementById('t1-bar0').style.width = Math.round(p0 * 100) + '%';
+    document.getElementById('t1-bar1').style.width = Math.round(p1 * 100) + '%';
+    document.getElementById('t1-p0').textContent = Math.round(p0 * 100) + '%';
+    document.getElementById('t1-p1').textContent = Math.round(p1 * 100) + '%';
+    document.getElementById('t1-sub').textContent = '\u03B1 = ' + fmt(alpha.re) + (alpha.im ? (alpha.im >= 0 ? '+' : '') + fmt(alpha.im) + 'i' : '') + ', \u03B2 = ' + fmt(beta.re) + (beta.im ? (beta.im >= 0 ? '+' : '') + fmt(beta.im) + 'i' : '');
+    document.getElementById('t1-ket').textContent = (p0 > 0.999 ? '|0\u27E9' : p1 > 0.999 ? '|1\u27E9' : '\u03B1|0\u27E9 + \u03B2|1\u27E9');
+    document.getElementById('t1-history').textContent = history.length ? history.join(' \u2192 ') : '(none yet)';
+    renderCircuit();
+  }
+  document.getElementById('t1-h').onclick = function () { applyMatrix([[cx(SQRT1_2,0),cx(SQRT1_2,0)],[cx(SQRT1_2,0),cx(-SQRT1_2,0)]]); history.push('H'); render(); };
+  document.getElementById('t1-x').onclick = function () { applyMatrix([[cx(0,0),cx(1,0)],[cx(1,0),cx(0,0)]]); history.push('X'); render(); };
+  document.getElementById('t1-z').onclick = function () { applyMatrix([[cx(1,0),cx(0,0)],[cx(0,0),cx(-1,0)]]); history.push('Z'); render(); };
+  document.getElementById('t1-reset').onclick = function () { alpha = cx(1,0); beta = cx(0,0); history = []; render(); };
+  render();
+})();
+
+// ============ TAB 2 ============
+(function () {
+  var stepIdx = 0;
+  var labels = ['|0\u27E9', '|+\u27E9', '|\u2212\u27E9', '|1\u27E9'];
+  var gates = ['H', 'Z', 'H'];
+  var gateColors = { H: '#4f46e5', Z: '#d85a30' };
+  var p0vals = [1, 0.5, 0.5, 0];
+  var explains = [
+    'Click <b>Next step</b> to apply the first Hadamard.',
+    'After H: equal superposition. P(0) = P(1) = 50%, as expected.',
+    'After Z: the relative phase flips, but P(0) and P(1) are <b>still 50/50</b> \u2014 completely invisible to direct measurement.',
+    'After the second H: the hidden phase becomes real. P(0) = 0%, P(1) = 100% \u2014 <b>constructive and destructive interference</b> in action.'
+  ];
+
+  function renderCircuit() {
+    var svg = document.getElementById('t2-circuit');
+    clearSvg(svg);
+    var y = 55, x1 = 70, x2 = 620;
+    drawWire(svg, x1, x2, y, '|0\u27E9');
+    var xs = [190, 330, 470];
+    gates.forEach(function (g, i) {
+      var applied = i < stepIdx;
+      var isCurrent = i === stepIdx;
+      var fill = applied ? gateColors[g] : (isCurrent ? gateColors[g] : '#1e2a4a');
+      var stroke = isCurrent ? '#22d3ee' : 'none';
+      drawGateBox(svg, xs[i], y, g, fill, stroke, applied || isCurrent ? '#ffffff' : '#64748b');
+    });
+    // output ket label at end of wire
+    var t = svgEl('text', { x: x2 + 15, y: y + 5, 'font-family': 'Consolas,monospace', 'font-size': 15, 'font-weight': 700, fill: '#e2e8f0', 'text-anchor': 'start' });
+    t.textContent = labels[stepIdx];
+    svg.appendChild(t);
+  }
+
+  function renderSteps() {
+    var html = '';
+    labels.forEach(function (l, i) {
+      var cls = i < stepIdx ? 'done' : (i === stepIdx ? 'current' : '');
+      html += '<div class="step-chip ' + cls + '">' + l + '</div>';
+      if (i < labels.length - 1) {
+        html += '<span class="arrow">' + (i < stepIdx ? '&#8594;' : '&#8594;') + '</span>';
+      }
+    });
+    document.getElementById('t2-steps').innerHTML = html;
+    var p0 = p0vals[stepIdx];
+    document.getElementById('t2-bar0').style.width = Math.round(p0 * 100) + '%';
+    document.getElementById('t2-bar1').style.width = Math.round((1 - p0) * 100) + '%';
+    document.getElementById('t2-p0').textContent = Math.round(p0 * 100) + '%';
+    document.getElementById('t2-p1').textContent = Math.round((1 - p0) * 100) + '%';
+    document.getElementById('t2-explain').innerHTML = explains[stepIdx];
+    document.getElementById('t2-next').disabled = stepIdx >= labels.length - 1;
+    renderCircuit();
+  }
+  document.getElementById('t2-next').onclick = function () {
+    if (stepIdx < labels.length - 1) { stepIdx++; renderSteps(); }
+  };
+  document.getElementById('t2-reset').onclick = function () { stepIdx = 0; renderSteps(); };
+  renderSteps();
+})();
+
+// ============ TAB 3 ============
+(function () {
+  // 4 amplitudes for |00>,|01>,|10>,|11>
+  var amps = [cx(1,0), cx(0,0), cx(0,0), cx(0,0)];
+  var stage = 0; // 0 = start, 1 = after H⊗H, 2 = after oracle
+
+  function renderCircuit() {
+    var svg = document.getElementById('t3-circuit');
+    clearSvg(svg);
+    var y0 = 50, y1 = 105, x1 = 70, x2 = 620;
+    drawWire(svg, x1, x2, y0, '|0\u27E9');
+    drawWire(svg, x1, x2, y1, '|0\u27E9');
+    if (stage >= 1) {
+      drawGateBox(svg, 170, y0, 'H', '#4f46e5');
+      drawGateBox(svg, 170, y1, 'H', '#4f46e5');
+    }
+    if (stage >= 2) {
+      svg.appendChild(svgEl('rect', { x: 320, y: y0 - 32, width: 70, height: (y1 - y0) + 64, rx: 6, fill: '#0f6e56', stroke: '#22d3ee', 'stroke-width': 1.5 }));
+      var t = svgEl('text', { x: 355, y: (y0 + y1) / 2 + 6, 'font-family': 'Consolas,monospace', 'font-size': 16, 'font-weight': 700, fill: '#ffffff', 'text-anchor': 'middle' });
+      t.textContent = 'Uf';
+      svg.appendChild(t);
+    }
+    if (stage === 0) {
+      var hint = svgEl('text', { x: (x1 + x2) / 2, y: 20, 'font-family': 'Calibri,sans-serif', 'font-size': 12, fill: '#64748b', 'text-anchor': 'middle', 'font-style': 'italic' });
+      hint.textContent = 'apply H\u2297H, then the oracle, to see the circuit fill in';
+      svg.appendChild(hint);
+    }
+  }
+
+  function render() {
+    var probs = amps.map(cAbs2);
+    var ids = ['00','01','10','11'];
+    ids.forEach(function (k, i) {
+      document.getElementById('t3-bar' + k).style.width = Math.round(probs[i] * 100) + '%';
+      document.getElementById('t3-p' + k).textContent = Math.round(probs[i] * 100) + '%';
+    });
+    document.getElementById('t3-h').disabled = stage !== 0;
+    document.getElementById('t3-oracle').disabled = stage !== 1;
+    renderCircuit();
+  }
+  document.getElementById('t3-h').onclick = function () {
+    var a = SQRT1_2;
+    amps = [cx(a*a,0), cx(a*a,0), cx(a*a,0), cx(a*a,0)];
+    stage = 1;
+    render();
+    document.getElementById('t3-explain').innerHTML = 'All four basis states now have equal probability 25% \u2014 one circuit is now "holding" all four inputs 00, 01, 10, 11 at once. Apply the oracle to act on all of them in a single step.';
+  };
+  document.getElementById('t3-oracle').onclick = function () {
+    // oracle flips the sign of |11> amplitude (phase-marking, Deutsch–Jozsa style)
+    amps[3] = cx(-amps[3].re, -amps[3].im);
+    stage = 2;
+    render();
+    document.getElementById('t3-explain').innerHTML = 'The oracle flipped the <b>sign</b> of the |11\u27E9 branch only \u2014 notice the probability bars look unchanged (25% each), because a sign flip alone doesn\u2019t change probabilities. This hidden marking is exactly what later interference (as in Tab 2) can convert into a visible, measurable difference.';
+  };
+  document.getElementById('t3-reset').onclick = function () {
+    amps = [cx(1,0), cx(0,0), cx(0,0), cx(0,0)];
+    stage = 0;
+    render();
+    document.getElementById('t3-explain').innerHTML = 'Start: |00\u27E9 with 100% probability. Apply H\u2297H to spread across all four basis states at once.';
+  };
+  render();
+})();
+
+// ============ TAB 4 ============
+(function () {
+  var noiseSlider = document.getElementById('t4-noise');
+  var trialsSlider = document.getElementById('t4-trials');
+
+  function renderCircuit() {
+    var svg = document.getElementById('t4-circuit');
+    clearSvg(svg);
+    var y = 55, x1 = 70, x2 = 620;
+    drawWire(svg, x1, x2, y, '|0\u27E9');
+    drawNoiseSymbol(svg, 300, y, parseInt(noiseSlider.value, 10));
+    drawMeasure(svg, 480, y);
+  }
+
+  noiseSlider.oninput = function () { document.getElementById('t4-noise-out').textContent = noiseSlider.value + '%'; renderCircuit(); };
+  trialsSlider.oninput = function () { document.getElementById('t4-trials-out').textContent = trialsSlider.value; };
+
+  var count0 = 0, count1 = 0;
+
+  function renderStats() {
+    var total = count0 + count1;
+    document.getElementById('t4-total').textContent = total;
+    document.getElementById('t4-count0').textContent = count0;
+    document.getElementById('t4-count1').textContent = count1;
+    var p0 = total ? count0 / total : 0.5;
+    var p1 = total ? count1 / total : 0.5;
+    document.getElementById('t4-bar0').style.width = Math.round(p0 * 100) + '%';
+    document.getElementById('t4-bar1').style.width = Math.round(p1 * 100) + '%';
+    document.getElementById('t4-p0').textContent = Math.round(p0 * 100) + '%';
+    document.getElementById('t4-p1').textContent = Math.round(p1 * 100) + '%';
+  }
+
+  document.getElementById('t4-run').onclick = function () {
+    var p = parseInt(noiseSlider.value, 10) / 100;
+    var n = parseInt(trialsSlider.value, 10);
+    for (var i = 0; i < n; i++) {
+      // ideal circuit prepares |0>, so the noiseless outcome is always 0;
+      // the noisy channel then flips that outcome with probability p
+      var ideal = 0;
+      var noisy = Math.random() < p ? (1 - ideal) : ideal;
+      if (noisy === 0) count0++; else count1++;
+    }
+    renderStats();
+    var total = count0 + count1;
+    var observedP1 = total ? count1 / total : 0;
+    var msg = 'With p = ' + Math.round(p * 100) + '%, the ideal result is always "0", but noise flips outcomes at random. ';
+    if (p === 0) {
+      msg = 'With p = 0%, this circuit gives "0" every time, exactly as the ideal, noise-free circuit predicts.';
+    } else {
+      msg += 'Observed P(1) is now about ' + Math.round(observedP1 * 100) + '% \u2014 close to the noise rate p itself, since each flip independently corrupts one outcome. Push p toward 50% and the result becomes indistinguishable from a coin flip: all the information in the circuit is destroyed.';
+    }
+    document.getElementById('t4-explain').innerHTML = msg;
+  };
+  document.getElementById('t4-reset').onclick = function () {
+    count0 = 0; count1 = 0;
+    renderStats();
+    document.getElementById('t4-explain').innerHTML = 'With p = 0%, this circuit should give "0" every single time. Raise the slider and re-run to see how much a noisy channel can corrupt an otherwise perfectly deterministic result.';
+  };
+  renderStats();
+  renderCircuit();
+})();
+</script>
+</body>
+</html>
